@@ -34,12 +34,13 @@ batch_transcode_ffv1_v210_start.sh bash script creates file list from multiple p
 batch_transcode_proresHD_mp4_start.sh bash script creates file list and passes to GNU Parallel that launches multiple Python3 scripts
 
 Crontab example entries:
-0  9 * * * user /usr/bin/flock -w 0 --verbose /var/run/batch_transcode.lock /transcoding/batch_transcode_ffv1_v210_start.sh > /tmp/python_cron1.log 2&>1
-0 13 * * * user /usr/bin/flock -w 0 --verbose /var/run/batch_transcode.lock /transcoding/batch_transcode_ffv1_v210_start.sh > /tmp/python_cron1.log 2&>1
-0 11 * * * user /usr/bin/flock -w 0 --verbose /var/run/batch_prores.lock    /transcoding/batch_transcode_proresHD_mp4_start.sh > /tmp/python_cron2.log 2&>1
-0 15 * * * user /usr/bin/flock -w 0 --verbose /var/run/batch_prores.lock    /transcoding/batch_transcode_proresHD_mp4_start.sh > /tmp/python_cron2.log 2&>1
-0 18 * * * user                               /usr/bin/python3              /transcoding/f47_ffv1_v210_transcode.py > /tmp/python_cron3.log 2>&1
 
+    0  9 * * * user /usr/bin/flock -w 0 --verbose /var/run/batch_transcode.lock /transcoding/batch_transcode_ffv1_v210_start.sh > /tmp/python_cron1.log 2&>1
+    0 13 * * * user /usr/bin/flock -w 0 --verbose /var/run/batch_transcode.lock /transcoding/batch_transcode_ffv1_v210_start.sh > /tmp/python_cron1.log 2&>1
+    0 11 * * * user /usr/bin/flock -w 0 --verbose /var/run/batch_prores.lock    /transcoding/batch_transcode_proresHD_mp4_start.sh > /tmp/python_cron2.log 2&>1
+    0 15 * * * user /usr/bin/flock -w 0 --verbose /var/run/batch_prores.lock    /transcoding/batch_transcode_proresHD_mp4_start.sh > /tmp/python_cron2.log 2&>1
+    0 18 * * * user                               /usr/bin/python3              /transcoding/f47_ffv1_v210_transcode.py > /tmp/python_cron3.log 2>&1
+    
 ## Environmental variable storage
 
 These scripts are being operated on each server under a specific user, who has environmental variables storing all path data for the script operations. These environmental variables are persistent so can be called indefinitely. When being called from crontab it's critical that the crontab user is set to the correct user with associated environmental variables.
