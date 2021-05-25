@@ -99,22 +99,12 @@ Script function:
 ** THIS SCRIPT MUST BE LAUNCED BY SHELL SCRIPT TO POPULATE SYS.ARGV[1] **
 1. Receives the HD ProRes mov path, and checks the path supplied conforms to file requirement, ie ends ".mov"
 2. Checks each ProRes mov file against MediaConch ProRes policy  
-If it passes:  
-  - Initiates FFmpeg subprocess command  
-  - Encodes with FFmpeg a mp4 file for frame.io viewing  
-If it fails:  
-  - Writes mediaconch failure message to a failures log  
-  - Moves ProRes to failures folder  
-  - Script exists to avoid the clean up stage for successful file transcodes only  
-3. Transcode begins using FFmpeg subprocess call, creating H264 MP4 file  
-4. MP4 compared to basic MP4 Mediaconch policy (is file whole)  
-If it passes:  
-  - Moves mp4 to mp4_completed/ folder  
-  - Copies ProRes from to new preservation location, before making md5sum checks of both files  
-  - If MD5 sums match the script deletes original ProRes mov.
-  - If MD5 sum does not match it repeats copy/MD5 sum validation. If fails again append failure log and exits script.  
-If it fails:
-  - Deletes mp4 and leaves ProRes for repeat attempt
+3. If it passes, initiates FFmpeg subprocess command and encodes with FFmpeg a mp4 file for frame.io viewing  
+4. If it fails, writes mediaconch failure message to a failures log, moves ProRes to failures folder and the script exists to avoid the clean up stage for successful file transcodes only.
+5. Transcode begins using FFmpeg subprocess call, creating H264 MP4 file  
+6. MP4 compared to basic MP4 Mediaconch policy (is file whole)
+7. If it passes, moves mp4 to mp4_completed/ folder. Copies ProRes from to new preservation location, before making md5sum checks of both files. If MD5 sums match the script deletes original ProRes mov. If MD5 sum does not match it repeats copy/MD5 sum validation. If fails again append failure log and exits script.
+8. If it fails, deletes mp4 and leaves ProRes for repeat attempt
 
 ### f47_ffv1_v210_transcode.py
 This script has been designed to help assist the Video and Audio Conservation Specialists at the BFI, by providing transcodes of preservation standard video files from FFV1 matroska to V210 mov, allowing editing in NLE software.  This script uses open source transcoding software FFmpeg to convert the FFV1 mkv to V210 mov, taking into account the need to trim certain files that have height dimensions of 608 (accommodating data streams embedded within the video during capture). The file’s metadata is assessed using Media Area’s MediaInfo and the finished V210 file is checked against a MediaConch conformance policy to ensure the file is valid before the original FFV1 mkv is deleted from the automation folder, leaving just the V210 version. As this script is infrequently needed it is run once a day and works through each file one at a time.
