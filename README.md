@@ -1,6 +1,6 @@
 # Open source transcode scripts
 
-The BFI National Archive have developed several workflows using open source software FFmpeg, FFprobe, Mediainfo and Mediaconch to convert preservation files to lossless and lossy access files for distribution and editing in NLE software. The aim of these scripts are to batch convert collections of digitised files from within the BFI National Archive collection, or returned from external sources, for Heritage 2022 Video Tape and Film Digitisation projects.  
+The BFI National Archive have developed several workflows using excellent open source software FFmpeg, FFprobe, Mediainfo and Mediaconch to convert preservation files to lossless and lossy access files for distribution and editing in NLE software. The aim of these scripts are to batch convert collections of digitised files from within the BFI National Archive collection, or returned from external sources, for Heritage 2022 Video Tape and Film Digitisation projects.  
 
 The transcoding scripts are written in Python3, and, excepting one instance, are launched from Bash Shell script using GNU Parallel which runs multiple versions of the Python script concurrently. These scripts are available under the MIT licence. If you wish to test these yourself please create a safe environment to use this code separate from preservation critical files. All comments and feedback welcome.  
 
@@ -8,9 +8,9 @@ The transcoding scripts are written in Python3, and, excepting one instance, are
 
 These scripts are run from Ubuntu 20.04LTS installed server and rely upon various Linux command line programmes. The scripts are not designed to be run from the command line, but via cron scheduling (see next section for more details). As a result there is no built in help command, so please refer to this README and the script comments for information about script functionality.  
 
-These include: flock, md5sum, grep, cat, echo, ls, rm, touch, basename, dirname, find, and date. You can find out more about these by running the manual (man flock) or by calling the help page (flock --help).  
+Linux dependencies include: flock, md5sum, grep, cat, echo, ls, rm, touch, basename, dirname, find, and date. You can find out more about these by running the manual (man flock) or by calling the help page (flock --help).  
 
-Open source softwares are used from Media Area and FFmpeg. Please follow the links below to find out more:  
+Open source softwares are used from Media Area and FFmpeg. Please follow the links below to find out more about installation and operation:  
 MediaConch - https://mediaarea.net/mediaconch  
 MediaInfo - https://mediaarea.net/mediainfo  
 FFmpeg - http://ffmpeg.org/  
