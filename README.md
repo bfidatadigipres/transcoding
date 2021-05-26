@@ -1,6 +1,6 @@
 # Open source transcode scripts
 
-The BFI National Archive have developed several workflows using excellent open source software FFmpeg, FFprobe, Mediainfo and Mediaconch to convert preservation files to lossless and lossy access files for distribution and editing in NLE software. The aim of these scripts are to batch convert collections of digitised files from within the BFI National Archive collection, or returned from external sources, for Heritage 2022 Video Tape and Film Digitisation projects.  
+The BFI National Archive have developed several workflows using excellent open source software FFmpeg, FFprobe, Mediainfo and Mediaconch to convert preservation files to lossless and lossy access files for distribution and editing in NLE software. The aim of these scripts are to batch convert collections of digital files from within the BFI National Archive collection, or returned from external sources, in workflows for various videotape and film digitisation projects.  
 
 The transcoding scripts are written in Python3, and, excepting one instance, are launched from Bash Shell script using GNU Parallel which runs multiple versions of the Python script concurrently. These scripts are available under the MIT licence. If you wish to test these yourself please create a safe environment to use this code separate from preservation critical files. All comments and feedback welcome.  
 
