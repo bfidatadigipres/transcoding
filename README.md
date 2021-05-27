@@ -30,12 +30,9 @@ The transcoding scripts are launched via shell scripts, or the Python directly, 
 Where a script is working on batches using multiple instances running concurrently it's possible to overburden the server and accidentally kill processes midway through. To prevent this the crontab calls the scripts via Linux Flock, /usr/bin/flock shown below. The lock files associated with each script are manually created and put in the /var/run folder. When one is active it blocks any other instances from launching, which allows for multiple crontab entries for a given script, see crontab example below. A script called flock_rebuild.sh (you can see an example of this in the dpx_encoding repository) regularly checks for missing lock files, and where absent recreates them. It is common for the lock files to disappear when a server is rebooted.  
 
 The scripts for FFmpeg transcoding run frequently throughout the day:  
-batch_transcode_ffv1_v210_start.sh  
-A bash script creates file list from multiple paths, passes to GNU Parallel that launches multiple Python3 scripts  
-batch_transcode_proresHD_mp4_start.sh  
-A bash script creates file list and passes to GNU Parallel that launches multiple Python3 scripts  
-f47_ffv1_v210_transcode.py  
-Python 3 script that works through a folder of FFV1 mkv files, transcoding one a at a time until completed
+batch_transcode_ffv1_v210_start.sh: A bash script creates file list from multiple paths, passes to GNU Parallel that launches multiple Python3 scripts  
+batch_transcode_proresHD_mp4_start.sh: A bash script creates file list and passes to GNU Parallel that launches multiple Python3 scripts  
+f47_ffv1_v210_transcode.py: Python 3 script that works through a folder of FFV1 mkv files, transcoding one a at a time until completed  
 
 Crontab example entries:
 
