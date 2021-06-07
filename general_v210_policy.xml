@@ -28,15 +28,10 @@
         <rule name="Video/Width is 720" value="Width" tracktype="Video" occurrence="*" operator="=">720</rule>
         <rule name="Video/Height is 576" value="Height" tracktype="Video" occurrence="*" operator="=">576</rule>
         <policy type="or" name="4/3 or 16/9">
-          <rule name="Video/DisplayAspectRatio is 1.333" value="DisplayAspectRatio" tracktype="Video" occurrence="*" operator="starts with">1.3</rule>
-          <rule name="Video/DisplayAspectRatio is 1.333" value="DisplayAspectRatio" tracktype="Video" occurrence="*" operator="starts with">1.7</rule>
-          <rule name="Video/DisplayAspectRatio is 1.333" value="DisplayAspectRatio" tracktype="Video" occurrence="*" operator="starts with">1.8</rule>
+          <rule name="Video/DisplayAspectRatio starts 1.3" value="DisplayAspectRatio" tracktype="Video" occurrence="*" operator="starts with">1.3</rule>
+          <rule name="Video/DisplayAspectRatio starts 1.7" value="DisplayAspectRatio" tracktype="Video" occurrence="*" operator="starts with">1.7</rule>
+          <rule name="Video/DisplayAspectRatio starts 1.8" value="DisplayAspectRatio" tracktype="Video" occurrence="*" operator="starts with">1.8</rule>
         </policy>
-      </policy>
-      <policy type="and" name="Height, width and DAR correct for PAL 16:9">
-        <rule name="Video/Width is 720" value="Width" tracktype="Video" occurrence="*" operator="=">720</rule>
-        <rule name="Video/Height is 576" value="Height" tracktype="Video" occurrence="*" operator="=">576</rule>
-        <rule name="Video/DisplayAspectRatio is 1.778" value="DisplayAspectRatio" tracktype="Video" occurrence="*" operator="=">1.778</rule>
       </policy>
       <policy type="and" name="HD 720 height, width and DAR correct">
         <rule name="Video/Width is 1280" value="Width" tracktype="Video" occurrence="*" operator="=">1280</rule>
@@ -48,20 +43,21 @@
         <rule name="Video/Height is 1080" value="Height" tracktype="Video" occurrence="*" operator="=">1080</rule>
         <rule name="Video/DisplayAspectRatio is 1.778" value="DisplayAspectRatio" tracktype="Video" occurrence="*" operator="=">1.778</rule>
       </policy>
-      <policy type="or" name="SD and HD colour information comparison">
-        <policy type="and" name="SD colour information">
-          <rule name="Video/Standard is PAL" value="Standard" tracktype="Video" occurrence="*" operator="=">PAL</rule>
-          <rule name="Video/colour_description_present is Yes" value="colour_description_present" tracktype="Video" occurrence="*" operator="=">Yes</rule>
-          <rule name="Video/colour_primaries is BT.601 PAL" value="colour_primaries" tracktype="Video" occurrence="*" operator="=">BT.601 PAL</rule>
-          <rule name="Video/transfer_characteristics is BT.709" value="transfer_characteristics" tracktype="Video" occurrence="*" operator="=">BT.709</rule>
-          <rule name="Video/matrix_coefficients is BT.601" value="matrix_coefficients" tracktype="Video" occurrence="*" operator="=">BT.601</rule>
-        </policy>
-        <policy type="and" name="HD colour information">
-          <rule name="Video/colour_description_present is Yes" value="colour_description_present" tracktype="Video" occurrence="*" operator="=">Yes</rule>
-          <rule name="Video/colour_primaries is BT.709" value="colour_primaries" tracktype="Video" occurrence="*" operator="=">BT.709</rule>
-          <rule name="Video/transfer_characteristics is BT.709" value="transfer_characteristics" tracktype="Video" occurrence="*" operator="=">BT.709</rule>
-          <rule name="Video/matrix_coefficients is BT.709" value="matrix_coefficients" tracktype="Video" occurrence="*" operator="=">BT.709</rule>
-        </policy>
+    </policy>
+    <policy type="and" name="Colour information comparison present for SD/HD">
+      <policy type="or" name="Colour primaries">
+        <rule name="Video/colour_primaries is BT.601 PAL" value="colour_primaries" tracktype="Video" occurrence="*" operator="=">BT.601 PAL</rule>
+        <rule name="Video/colour_primaries is BT.470 System B/G" value="colour_primaries" tracktype="Video" occurrence="*" operator="=">BT.470 System B/G</rule>
+        <rule name="Video/colour_primaries is BT.709" value="colour_primaries" tracktype="Video" occurrence="*" operator="=">BT.709</rule>
+      </policy>
+      <policy type="or" name="Transfer characteristics">
+        <rule name="Video/transfer_characteristics is BT.709" value="transfer_characteristics" tracktype="Video" occurrence="*" operator="=">BT.709</rule>
+        <rule name="Video/transfer_characteristics is BT.601" value="transfer_characteristics" tracktype="Video" occurrence="*" operator="=">BT.601</rule>
+      </policy>
+      <policy type="or" name="Matrix coefficients">
+        <rule name="Video/matrix_coefficients is BT.601" value="matrix_coefficients" tracktype="Video" occurrence="*" operator="=">BT.601</rule>
+        <rule name="Video/matrix_coefficients is BT.709" value="matrix_coefficients" tracktype="Video" occurrence="*" operator="=">BT.709</rule>
+        <rule name="Video/matrix_coefficients is BT.470 System B/G" value="matrix_coefficients" tracktype="Video" occurrence="*" operator="=">BT.470 System B/G</rule>
       </policy>
     </policy>
     <policy type="and" name="Audio information correct and present">
