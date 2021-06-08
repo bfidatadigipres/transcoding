@@ -61,7 +61,7 @@ Script function:
 6. GNU parallel runs four concurrent jobs, passing a different FFV1 mkv path to Python script below
 
 ### batch_transcode_h22_ffv1_v210.py
-This script convert FFV1 Matroska files to V210 mov files for Heritage 2022 partners who wish to have alternative preservation masters. This script uses open source softwares to automate the transcode and validate the finished V210 file. Transcoding software FFmpeg is used to convert the FFV1 mkv to V210 mov. The script retrieves FFV1 source metadata using open source software FFprobe and Mediainfo collecting colour primaries data, matrix coefficients and field order. This metadata is passed into the FFmpeg command to create the V210 mov. FFmpeg is further used to make framemd5 files testing that each frame is identical between the FFV1 and V210, and finally the V210 is checked against an open source MecdiaConch policy to ensure the file is valid.
+This script convert FFV1 Matroska files to V210 mov files for project partners who wish to have alternative preservation masters. This script uses open source softwares to automate the transcode and validate the finished V210 file. Transcoding software FFmpeg is used to convert the FFV1 mkv to V210 mov. The script retrieves FFV1 source metadata using open source software FFprobe and Mediainfo collecting colour primaries data, matrix coefficients and field order. This metadata is passed into the FFmpeg command to create the V210 mov. FFmpeg is further used to make framemd5 files testing that each frame is identical between the FFV1 and V210, and finally the V210 is checked against an open source MecdiaConch policy to ensure the file is valid.
 
 Script function:
 ** THIS SCRIPT MUST BE LAUNCED BY SHELL SCRIPT TO POPULATE SYS.ARGV[1] **
