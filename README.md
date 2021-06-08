@@ -72,7 +72,7 @@ Script function:
 5. Verifies V210 mov passes framemd5 manifest comparison and mediaconch policy
 If passes both!
   - Moves V210 mov to success/ folder
-  - Deletes FFV1 mkv that has successful MOV pass
+  - Deletes FFV1 mkv that has successful MOV pass  
 If fails either!
   - Moves V210 mov to failures/ before deleting the mov asset
   - Leaves FFV1 mkv whose mov failed policy check for another transcode attempt next script run
