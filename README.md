@@ -92,13 +92,13 @@ Script function:
 6. GNU parallel runs three concurrent jobs, passing a different HD ProRes mov path to Python script below
 
 ### batch_transcode_proresHD_mp4.py
-This script converts externally supplied HD ProRes mov files to H.264 MP4 files for distribution to partners via file transfer solution. This script uses open source software Mediaconch to validate the ProRes mov file before FFmpeg automates the transcode to an MP4 file. The ProRes mov is copied to a new preservation location using open source software rsync, and MD5 sums are generated for both ProRes mov files to check the copy is identical.
+This script converts externally supplied HD ProRes mov files to H.264 MP4 files for distribution to partners via file transfer and cloud web playback solution. This script uses open source software Mediaconch to validate the ProRes mov file before FFmpeg automates the transcode to an MP4 file. The ProRes mov is copied to a new preservation location using open source software rsync, and MD5 sums are generated for both ProRes mov files to check the copy is identical.
 
 Script function:
 ** THIS SCRIPT MUST BE LAUNCED BY SHELL SCRIPT TO POPULATE SYS.ARGV[1] **
 1. Receives the HD ProRes mov path, and checks the path supplied conforms to file requirement, ie ends ".mov"
 2. Checks each ProRes mov file against MediaConch ProRes policy  
-3. If it passes, initiates FFmpeg subprocess command and encodes with FFmpeg a mp4 file for frame.io viewing  
+3. If it passes, initiates FFmpeg subprocess command and encodes with FFmpeg a mp4 file for viewing in web application
 4. If it fails, writes mediaconch failure message to a failures log, moves ProRes to failures folder and the script exists to avoid the clean up stage for successful file transcodes only.
 5. Transcode begins using FFmpeg subprocess call, creating H264 MP4 file  
 6. MP4 compared to basic MP4 Mediaconch policy (is file whole)
