@@ -69,7 +69,7 @@ Script function:
 2. The script extracts the metadata of each file acquiring scan order and colour metadata
 3. Populates FFmpeg subprocess command based on format decision from retrieved metadata
 4. Transcodes new file into 'transcode/' folder named as {filename}.mov
-5. Verifies V210 mov passes framemd5 manifest comparison and mediaconch policy
+5. Verifies V210 mov passes framemd5 manifest comparison and mediaconch policy  
 If passes both!
   - Moves V210 mov to success/ folder
   - Deletes FFV1 mkv that has successful MOV pass  
