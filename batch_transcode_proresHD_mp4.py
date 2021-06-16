@@ -27,6 +27,7 @@ import subprocess
 import shutil
 import logging
 import sys
+import datetime
 
 # Global variables
 DESTINATION = os.environ['FILM_H22_DEST']
