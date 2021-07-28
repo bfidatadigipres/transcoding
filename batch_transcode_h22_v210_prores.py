@@ -228,8 +228,8 @@ def clean_up(fullpath, new_fullpath):
                 logger.info("%s passed the policy checker and it's Matroska can be deleted", new_file)
                 try:
                     new_file_path = change_path(fullpath, 'pass')
-                    shutil.move(fullpath, new_file_path)
-                    logger.inf("Moved passed Prores %s to %s", new_file, new_file_path)
+                    shutil.move(new_fullpath, new_file_path)
+                    logger.inf("Moved passed ProRes %s to %s", new_file, new_file_path)
                 except Exception:
                     logger.exception("Unable to move %s to success folder: %s", new_file, new_file_path)
                 try:
