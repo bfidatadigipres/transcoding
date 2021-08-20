@@ -84,8 +84,7 @@ def create_ffmpeg_command(fullpath):
     ]
 
     input_video_file = [
-        "-i", fullpath,
-        "-nostdin"
+        "-i", fullpath
     ]
 
     map_command = [
@@ -112,7 +111,6 @@ def create_ffmpeg_command(fullpath):
     ]
 
     mov_settings = [
-        "-f", "mov",
         "-n", output_fullpath
     ]
 
