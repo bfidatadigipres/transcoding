@@ -3,21 +3,31 @@
 '''
 H22 video tape review script
 
-1. Look through all subfolders in ‘review' for ‘review_completed.txt’,
-   where found move all contents ‘.mov’ files to the ‘originals’ folder for bash script deletion.
-2. Remove empty folder and review_completed.txt file.
-3. Script looks in 'automated_review' folder for all files ending with ‘.mov’.
-4. Look up object number(s) in CID for each file container number (querying current location in
-   Item’s child carrier), then retrieve original video format type (eg 1inch, Umatic)
-   NOTE: you may get multiple Items in the response (where more than one Item is on the source tape),
-   they will all have same video format, so adding limit=1 to the query would return only one item,
-   from which to parse the video_format
-5. Call up CID again to identify which supplier the file has come from (method to be identified)
-6. Extract along with video_format. Identify supplier folder, and generate video format subfolder in reviews folder
-   (eg, reviews/VDM/1inch/) If folder already exists (exists=ok) then don’t make new directory.
-   If a new folder is made, create and add a new ‘review_underway.txt’.
-7. Move the corresponding file out of automated_review into the review/format_type folder.
+First step is to clean up reviewed items:
+1. Look through all subfolders in review for review_completed.txt file.
+   Where found move all contained MOV files to the originals folder for
+   scheduled bash script deletion.
+2. Remove empty folder after deleting the review_completed.txt file.
+3. If a folder containing review_completed.txt isn’t completely empty
+   after the MOV files have been moved out, then the folder is moved
+   into a completed_to_delete folder for manual assessment.
 
+Second step is to look for new files that need sorting:
+1. Script looks in auto_review folder for all files ending .mov and and split
+   the file name from the extension, using the filename to make CID queries.
+2. Look in CID items database using the filename in a current_location.name search,
+   retrieve first original video format type (eg 1-inch, Umatic, Digital Betacam).
+3. Convert the video_format variable into a folder name
+4. Look in CID packages database using the filename in a name search, and
+   retrieve the fields called part_of, which contains the supplier name.
+5. Match the supplier name to one of five supplier paths and return to the
+   script to allow the correct path to be constructed.
+6. If format type and supplier name present, create new directory and add
+   'review_underway.txt' and move MOV in. If folder already exists then move MOV
+   file straight in. Iteration continues until all MOV files are processed
+7. If a file is found that has no CID returns, then it's moved into
+   CID_item_not_found folder.
+8. All processes outputted to human readable log file located in review/ folder.
 
 Joanna White 2021
 '''
@@ -188,7 +198,7 @@ def main():
                     LOGGER.warning("%s: Creation of text file in new folder failed. Leaving to retry later.", file)
         else:
             local_logger(f"Format folder {format_folder} or Supplier folder {supplier_folder} unobtainable.")
-            local_logger(f"Moving file {file} to folder CID_item_not_found/ folder in auto-review path")
+            local_logger(f"Moving file {file} to folder CID_item_not_found/ in review path")
             shutil_move(filepath, CID_NOT_FOUND)
 
     LOGGER.info("============== H22 VIDEO TAPE REVIEW END =============")
