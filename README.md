@@ -105,6 +105,35 @@ Script function:
 7. If it passes, moves mp4 to mp4_completed/ folder. Copies ProRes from to new preservation location, before making md5sum checks of both files. If MD5 sums match the script deletes original ProRes mov. If MD5 sum does not match it repeats copy/MD5 sum validation. If fails again append failure log and exits script.
 8. If it fails, deletes mp4 and leaves ProRes for repeat attempt
 
+### batch_transcode_h22_v210_prores_start.sh
+This bash shell script compiles a list of V210 MOV files, and launches concurrent Python scripts each with a different path name using GNU Parallel, four jobs at a time.
+
+Script function:
+1. Loads local variables from server environmental variables
+2. Changes directory temporarily to launch Python script
+3. Deletes and recreates the list of available MOV files for processing
+4. Runs a find search for all files named ending ".mov" in transcode path 1, 2 and 3, outputs to one list
+5. Greps the list searching for '/mnt/' path opening, and passes the results one at a time to GNU Parallel
+6. GNU parallel runs four concurrent jobs, passing a different MOV path to Python script below
+
+### batch_transcode_h22_v210_prores.py
+This script converts V210 MOV files to ProRes 422HQ mov files for project partners who wish to have alternative preservation masters. This script uses open source softwares to automate the transcode and validation using MediaConch comformance policy.
+
+Script function:
+** THIS SCRIPT MUST BE LAUNCED BY SHELL SCRIPT TO POPULATE SYS.ARGV[1] **
+1. Receives single path as sys.argv[1]
+3. Populates FFmpeg subprocess command based on supplied fullpath and fixed FFmpeg command
+4. Transcodes new file into 'prores_transcode/' folder named as {filename}.mov
+5. Runs mediaconch checks against the ProRes file:
+
+If passes!
+  - Moves ProRes to finished_prores/ folder
+  - Deletes original V210 mov file (currently offline)
+If fails!
+  - Moves ProRes mov to failures/ folder and appends failures log
+  - Deletes ProRes from failures folder (currently offline)
+  - Leaves original V210 mov for repeated encoding attempt
+
 ### f47_ffv1_v210_transcode.py
 This script has been designed to help assist the Video and Audio Conservation Specialists in the BFI National Archive, by providing transcodes of preservation standard video files from FFV1 matroska to V210 mov, allowing editing in NLE software.  This script uses open source transcoding software FFmpeg to convert the FFV1 mkv to V210 mov, taking into account the need to trim certain files that have height dimensions of 608 (accommodating data streams from off-air transmission, embedded within the video during capture). The file’s metadata is assessed using Media Area’s MediaInfo and the finished V210 file is checked against a MediaConch conformance policy to ensure the file is valid before the original FFV1 mkv is deleted from the automation folder, leaving just the V210 version. As this script is infrequently needed it is run once a day and works through each file one at a time.
 
@@ -136,3 +165,27 @@ Second step is to look for new files that need sorting:
 6. If format type and supplier name present, create new directory and add 'review_underway.txt' and move MOV in. If folder already exists then move MOV file straight in. Iteration continues until all MOV files are processed
 7. If a file is found that has is missing either CID format type or supplier name, then it's moved into CID_item_not_found folder.
 8. All processes outputted to human readable log file located in review folder.
+
+### source_delay_identifier.sh
+A simple shell script that extracts video file track metadata using open source software Mediainfo and compares to see if they are the same/differ and pass/fail file depending on result
+
+Script function:
+1. Search in each path for MOV files
+2. Iterate through MOV files, extracting mediainfo metadata returns for search 'source_delay'
+3. Use awk print to store variables for the first and second returns (if present) and provisionally allocate variable names video_delay and audio_delay, though this is not always an accurate name representation
+4. First check if video_delay and audio_delay are the same:
+If yes!
+ - Then the file won't fail transcoding.
+If no! 
+ - They're not the same then move onto step 5.
+5. Is video_delay variable empty?
+If yes! 
+- Then the file won't fail transcoding so pass.
+If no! 
+- Move onto step 6 check.
+6. Is audio_delay variable empty?
+If yes!
+- Then the file won't fail transcoding, so pass.
+If no!
+- Then script deduces that both are populated but do not match. Move to failures folder.  This logic works if the video track source_delay and first audio track source_delay are retrieved by metadata search, or if video track source_delay is absent and returns only two audio track source_delays which always match.
+
