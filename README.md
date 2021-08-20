@@ -174,20 +174,14 @@ Script function:
 2. Iterate through MOV files, extracting mediainfo metadata returns for search 'source_delay'
 3. Use awk print to store variables for the first and second returns (if present) and provisionally allocate variable names video_delay and audio_delay, though this is not always an accurate name representation
 4. First check if video_delay and audio_delay are the same:  
-If yes!  
- - Then the file won't fail transcoding.  
-If no!   
- - They're not the same then move onto step 5.  
-5. Is video_delay variable empty?  
-If yes!  
-- Then the file won't fail transcoding so pass.  
-If no!  
-- Move onto step 6 check.  
-6. Is audio_delay variable empty?  
-If yes!  
-- Then the file won't fail transcoding, so pass.  
-If no!  
-- Then script deduces that both are populated but do not match. Move to failures folder.
+If yes!  Then the file won't fail transcoding. 
+If no!  They're not the same then move onto step 5 
+5. Is video_delay variable empty? 
+If yes!  Then the file won't fail transcoding so pass. 
+If no!  Move onto step 6 check. 
+6. Is audio_delay variable empty? 
+If yes!  Then the file won't fail transcoding, so pass. 
+If no!  Then script deduces that both are populated but do not match. Move to failures folder.
 
 Note: This logic works if the video track source_delay and first audio track source_delay are retrieved by metadata search, or if video track source_delay is absent and returns only two audio track source_delays which always match.
 
