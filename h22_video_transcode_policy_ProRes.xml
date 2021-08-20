@@ -1,0 +1,89 @@
+<?xml version="1.0"?>
+<policy type="and" name="h22_video_transcode_policy_ProRes">
+  <description>Test that ProRes 422HQ file formatted correctly following transcode
+- Format and format profile correct for QuickTime 422HQ, duration present so file is whole
+- All acceptable DAR and pixels provided and match found and colour information correct for PAL or NTSC standards
+- Maintainer Joanna White</description>
+  <rule name="General/VideoCount is 1" value="VideoCount" tracktype="General" occurrence="*" operator="=">1</rule>
+  <rule name="General/AudioCount is 1 or greater" value="AudioCount" tracktype="General" occurrence="*" operator="&gt;=">1</rule>
+  <rule name="General/FileExtension is mov" value="FileExtension" tracktype="General" occurrence="*" operator="=">mov</rule>
+  <rule name="General/Format is MPEG-4" value="Format" tracktype="General" occurrence="*" operator="=">MPEG-4</rule>
+  <rule name="General/Format_Profile is QuickTime" value="Format_Profile" tracktype="General" occurrence="*" operator="=">QuickTime</rule>
+  <rule name="General/CodecID is qt  " value="CodecID" tracktype="General" occurrence="*" operator="=">qt  </rule>
+  <rule name="General/IsStreamable is Yes" value="IsStreamable" tracktype="General" occurrence="*" operator="=">Yes</rule>
+  <rule name="General/Duration field exists" value="Duration" tracktype="General" occurrence="*"/>
+  <rule name="Video/Duration field exists" value="Duration" tracktype="Video" occurrence="*"/>
+  <rule name="Video/Format is ProRes" value="Format" tracktype="Video" occurrence="*" operator="=">ProRes</rule>
+  <rule name="Video/Format_Profile is 422 HQ" value="Format_Profile" tracktype="Video" occurrence="*" operator="=">422 HQ</rule>
+  <policy type="or" name="Height, width, DAR correct for video standard">
+    <policy type="and" name="Height, width and DAR correct for PAL 4:3">
+      <rule name="Video/Width is 720" value="Width" tracktype="Video" occurrence="*" operator="=">720</rule>
+      <rule name="Video/Height is 576" value="Height" tracktype="Video" occurrence="*" operator="=">576</rule>
+      <rule name="Video/DisplayAspectRatio is 1.3" value="DisplayAspectRatio" tracktype="Video" occurrence="*" operator="starts with">1.3</rule>
+    </policy>
+    <policy type="and" name="Height, width and DAR 1.7 correct for PAL 16:9">
+      <rule name="Video/Width is 720" value="Width" tracktype="Video" occurrence="*" operator="=">720</rule>
+      <rule name="Video/Height is 576" value="Height" tracktype="Video" occurrence="*" operator="=">576</rule>
+      <rule name="Video/DisplayAspectRatio is 1.7" value="DisplayAspectRatio" tracktype="Video" occurrence="*" operator="starts with">1.7</rule>
+    </policy>
+    <policy type="and" name="Height, width and DAR 1.8 correct for PAL 16:9">
+      <rule name="Video/Width is 720" value="Width" tracktype="Video" occurrence="*" operator="=">720</rule>
+      <rule name="Video/Height is 576" value="Height" tracktype="Video" occurrence="*" operator="=">576</rule>
+      <rule name="Video/DisplayAspectRatio is 1.8" value="DisplayAspectRatio" tracktype="Video" occurrence="*" operator="starts with">1.8</rule>
+    </policy>
+    <policy type="and" name="HD 720 height, width and DAR correct">
+      <rule name="Video/Width is 1280" value="Width" tracktype="Video" occurrence="*" operator="=">1280</rule>
+      <rule name="Video/Height is 720" value="Height" tracktype="Video" occurrence="*" operator="=">720</rule>
+      <rule name="Video/DisplayAspectRatio is 1.7" value="DisplayAspectRatio" tracktype="Video" occurrence="*" operator="starts with">1.7</rule>
+    </policy>
+    <policy type="and" name="HD 1080 height, width and DAR correct">
+      <rule name="Video/Width is 1920" value="Width" tracktype="Video" occurrence="*" operator="=">1920</rule>
+      <rule name="Video/Height is 1080" value="Height" tracktype="Video" occurrence="*" operator="=">1080</rule>
+      <rule name="Video/DisplayAspectRatio is 1.7" value="DisplayAspectRatio" tracktype="Video" occurrence="*" operator="starts with">1.7</rule>
+    </policy>
+  </policy>
+  <policy type="or" name="Video/PixelAspectRatio is permitted value">
+    <rule name="PAR 16:11 aka 1.455" value="PixelAspectRatio" tracktype="Video" occurrence="*" operator="=">1.455</rule>
+    <rule name="PAR 12:11 aka 1.09*" value="PixelAspectRatio" tracktype="Video" occurrence="*" operator="starts with">1.09</rule>
+    <rule name="PAR 16:15 aka 1.067" value="PixelAspectRatio" tracktype="Video" occurrence="*" operator="=">1.067</rule>
+    <rule name="PAR 118:81 aka 1.457" value="PixelAspectRatio" tracktype="Video" occurrence="*" operator="=">1.457</rule>
+  </policy>
+  <policy type="or" name="ScanType is progressive or interlaced / ScanOrder is TFF or BFF">
+    <rule name="FFV1 is progressive" value="ScanType" tracktype="Video" occurrence="*" operator="=">Progressive</rule>
+    <rule name="FFV1 is interlaced" value="ScanType" tracktype="Video" occurrence="*" operator="=">Interlaced</rule>
+    <rule name="Video/ScanOrder is TFF" value="ScanOrder" tracktype="Video" occurrence="*" operator="=">TFF</rule>
+    <rule name="Video/ScanOrder is BFF" value="ScanOrder" tracktype="Video" occurrence="*" operator="=">BFF</rule>
+  </policy>
+  <policy type="or" name="Colour information comparison">
+    <policy type="or" name="Colour primaries">
+      <rule name="Video/colour_primaries is BT.601 PAL" value="colour_primaries" tracktype="Video" occurrence="*" operator="=">BT.601 PAL</rule>
+      <rule name="Video/colour_primaries is BT.470 System B/G" value="colour_primaries" tracktype="Video" occurrence="*" operator="=">BT.470 System B/G</rule>
+      <rule name="Video/colour_primaries is BT.709" value="colour_primaries" tracktype="Video" occurrence="*" operator="=">BT.709</rule>
+    </policy>
+    <policy type="or" name="Transfer characteristics">
+      <rule name="Video/transfer_characteristics is BT.709" value="transfer_characteristics" tracktype="Video" occurrence="*" operator="=">BT.709</rule>
+      <rule name="Video/transfer_characteristics is BT.601" value="transfer_characteristics" tracktype="Video" occurrence="*" operator="=">BT.601</rule>
+    </policy>
+    <policy type="or" name="Matrix coefficients">
+      <rule name="Video/matrix_coefficients is BT.601" value="matrix_coefficients" tracktype="Video" occurrence="*" operator="=">BT.601</rule>
+      <rule name="Video/matrix_coefficients is BT.709" value="matrix_coefficients" tracktype="Video" occurrence="*" operator="=">BT.709</rule>
+      <rule name="Video/matrix_coefficients is BT.470 System B/G" value="matrix_coefficients" tracktype="Video" occurrence="*" operator="=">BT.470 System B/G</rule>
+    </policy>
+  </policy>
+  <rule name="Video/ColorSpace is YUV" value="ColorSpace" tracktype="Video" occurrence="*" operator="=">YUV</rule>
+  <rule name="Video/ChromaSubsampling is 4:2:2" value="ChromaSubsampling" tracktype="Video" occurrence="*" operator="=">4:2:2</rule>
+  <policy type="or" name="Framerate is 25.000 or 29.970">
+    <rule name="Video/FrameRate is 25.000" value="FrameRate" tracktype="Video" occurrence="*" operator="=">25.000</rule>
+    <rule name="Video/FrameRate is 29.970" value="FrameRate" tracktype="Video" occurrence="*" operator="=">29.970</rule>      
+  </policy>
+  <rule name="Audio/StreamOrder is 0 or greater" value="StreamOrder" tracktype="Audio" occurrence="*" operator="&gt;=">0</rule>
+  <rule name="Audio is PCM" value="Format" tracktype="Audio" occurrence="*" operator="=">PCM</rule>
+  <rule name="Audio/Format_Settings_Sign is Signed" value="Format_Settings_Sign" tracktype="Audio" occurrence="*" operator="=">Signed</rule>
+  <rule name="Audio/BitRate_Mode is CBR" value="BitRate_Mode" tracktype="Audio" occurrence="*" operator="=">CBR</rule>
+  <rule name="Audio/SamplingRate is 48000" value="SamplingRate" tracktype="Audio" occurrence="*" operator="=">48000</rule>
+  <policy type="or" name="Audio BitDepth">
+    <rule name="Audio/BitDepth is 16" value="BitDepth" tracktype="Audio" occurrence="*" operator="=">16</rule>
+    <rule name="Audio/BitDepth is 24" value="BitDepth" tracktype="Audio" occurrence="*" operator="=">24</rule>
+  </policy>
+  <rule name="Audio/CodecID exists" value="CodecID" tracktype="Audio" occurrence="*" operator="exists"/>
+</policy>
