@@ -148,24 +148,6 @@ Script function:
 8. Deletes FFV1 mkv that has successful V210 mov
 9. If the V210 mov fails the Mediaconch policy check the FFV1 mkv is left in place for a repeat transcoding attempt the next time the script runs.
 
-### h22_video_tape_review.py
-This script allows for the review of different video tape formats by retrieving CID video_format data and supplier names, generating a directory from these variables and moving files into them. When review is complete a text file is renamed and MOV files are moved to a deletion path and the folder is deleted.
-
-First step is to clean up reviewed items:
-1. Look through all subfolders in review for review_completed.txt file. Where found move all contained MOV files to the originals folder for scheduled bash script deletion.
-2. Remove empty folder after deleting the review_completed.txt file.
-3. If a folder containing review_completed.txt isn’t completely empty after the MOV files have been moved out, then the folder is moved into a completed_to_delete folder for manual assessment.
-
-Second step is to look for new files that need sorting:
-1. Script looks in auto_review folder for all files ending .mov and and split the file name from the extension, using the filename to make CID queries.
-2. Look in CID items database using the filename in a current_location.name search, retrieve first original video format type (eg 1-inch, Umatic, Digital Betacam).
-3. Convert the video_format variable into a folder name, replacing unwanted characters and whitespace and making characters lower case
-4. Look in CID packages database using the filename in a name search, and retrieve the fields called part_of, which contains the supplier name.
-5. Match the supplier name to one of five supplier paths and return to the script to allow the correct path to be constructed.
-6. If format type and supplier name present, create new directory and add 'review_underway.txt' and move MOV in. If folder already exists then move MOV file straight in. Iteration continues until all MOV files are processed
-7. If a file is found that has is missing either CID format type or supplier name, then it's moved into CID_item_not_found folder.
-8. All processes outputted to human readable log file located in review folder.
-
 ### source_delay_identifier.sh
 A simple shell script that extracts video file track metadata using open source software Mediainfo and compares to see if they are the same/differ and pass/fail file depending on result
 
