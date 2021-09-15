@@ -89,7 +89,7 @@ def remove_reviewed():
     Where present deletes txt file and moves .mov files to
     Originals path, before deleting video_type folder
     '''
-    local_logger(f"\n---------- Assessing review path for completed reviews ---------- {TODAY_DATE} {TODAY_TIME}")
+    local_logger(f"\n\n---------- Assessing review path for completed reviews ---------- {TODAY_DATE} {TODAY_TIME}")
     for path in PATHS:
         review_path = os.path.join(REVIEW_PATH, path)
         directories = os.listdir(review_path)
@@ -105,18 +105,18 @@ def remove_reviewed():
                 for i in items:
                     filepath = os.path.join(item_path, i)
                     LOGGER.info("Moving all contents to %s", ORIGINALS_PATH)
-                    if i.endswith('completed.txt'):
+                    if 'review_completed.txt' in i.lower():
                         LOGGER.info("Deleting: %s", filepath)
                         try:
                             os.remove(filepath)
                         except OSError:
                             LOGGER.warning("Unable to delete %s", filepath)
-                    if i.endswith('.mov'):
+                    if i.endswith(('.MOV', '.mov')):
                         local_logger(f"Moving file to originals/ for deletion: {i}")
                         LOGGER.info("Move: %s to %s", filepath, ORIGINALS_PATH)
                         shutil.move(filepath, ORIGINALS_PATH)
             else:
-                local_logger(f"Skipping, no completed reviews for path {item_path}")
+                local_logger(f"Skipping, no completed reviews for path {item_path}\n")
                 LOGGER.info("No completed review text file found in folder %s", item_path)
                 continue
 
@@ -128,11 +128,11 @@ def remove_reviewed():
                 try:
                     os.rmdir(item_path)
                 except OSError:
-                    LOGGER.warning(f"Unable to delete folder {item_path} - NOT EMPTY!")
+                    LOGGER.warning("Unable to delete folder %s - NOT EMPTY!", item_path)
             else:
                 # Other file still remains in folder, move to completed_to_delete folder
                 LOGGER.info("NOT DELETING: %s Folder has content remaining after MOV and TXT files removed", item_path)
-                local_logger(f"{item_path}: NOT EMPTY! Moving to completed_to_delete folder for manual clean up")
+                local_logger(f"{item_path}: NOT EMPTY! Moving to completed_to_delete folder for manual clean up\n")
                 shutil.move(item_path, COMPLETED_PATH)
 
 
@@ -151,9 +151,13 @@ def main():
 
     files = os.listdir(AUTO_REVIEW)
     for file in files:
-        filepath = os.path.join(AUTO_REVIEW, file)
-        fname = os.path.splitext(file)
-        local_logger(f"\n----------- New file found for review: {file} ----------- {TODAY_DATE} {TODAY_TIME}")
+        if file.endswith(('.MOV', '.mov')):
+            filepath = os.path.join(AUTO_REVIEW, file)
+            fname = os.path.splitext(file)
+            local_logger(f"\n----------- New file found for review: {file} ----------- {TODAY_DATE} {TODAY_TIME}")
+        else:
+            LOGGER.info("File %s does not end .MOV, leaving in place and skipping to next", file)
+            continue
 
         # Launch CID query to retrieve video format type
         video_type = get_video_type(fname[0])
@@ -180,7 +184,7 @@ def main():
                 # Move file straight in no issues
                 LOGGER.info("Format folder exists for supplier. Moving %s straight to %s", filepath, move_folder)
                 shutil.move(filepath, move_folder)
-                logger_local(f"Moving {file} from {filepath} to new review path {move_folder}")
+                local_logger(f"Moving {file} from {filepath} to new review path {move_folder}")
             else:
                 # Folder doesn't exist, mkdir, make txt file and move
                 LOGGER.info("New folder being created: %s", move_folder)
@@ -199,7 +203,7 @@ def main():
         else:
             local_logger(f"Format folder {format_folder} or Supplier folder {supplier_folder} unobtainable.")
             local_logger(f"Moving file {file} to folder CID_item_not_found/ in review path")
-            shutil_move(filepath, CID_NOT_FOUND)
+            shutil.move(filepath, CID_NOT_FOUND)
 
     LOGGER.info("============== H22 VIDEO TAPE REVIEW END =============")
 
