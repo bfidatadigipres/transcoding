@@ -224,7 +224,7 @@ def md5_check(file_path1, file_path2):
 
 def main():
     '''
-    Script receives sys.argv[1] from GNU parallel and processes one ProRes from list
+    Script receives sys.argv from GNU parallel list grep and processes one ProRes from list
     '''
     if len(sys.argv) < 2:
         print("SCRIPT EXITING: Error with shell script input. Please input:\n \
