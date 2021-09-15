@@ -3,19 +3,26 @@
 '''
 *** THIS SCRIPT MUST RUN WITH SHELL SCRIPT LAUNCH TO PASS FILES TO SYS.ARGV[1] AND DRIVE PARALLEL ***
 Script that takes V210 Matroska files and encodes to ProRes mov:
-1. Shell script searches in paths for files that end in '.mov' and passes on one at a time to Python
-2. Receives single path as sys.argv[1], checks metadata of file acquiring field order, colour data etc
-3. Populates FFmpeg subprocess command based on format decisiong from retrieved data
-4. Transcodes new file into 'transcode/' folder named as {filename}.mov
-5. Runs framemd5 checks against the FFV1 matroska and V210 mov file, checks if they're identical
-   If identical:
-     i. verifies V210 mov passes mediaconch policy
-     ii. If yes, moves identical V210 mov to success/ folder
-         If no, moves V210 mov to failures/ folder and appends failures log. Deletes V210 mov
-     iii. If mediaconch passed FFV1 matroska is deleted
-   If not identical:
-     i. File is not mediaconch checked but moved to failures/ and failure log updated
-     ii. V210 mov is deleted and FFV1 matroska is left in place for another transcoding attempt
+
+1. Shell script searches in paths for files that end in '.mov' not modified in the last ten minutes and at a depth of 1 folder,
+   then passes any found one at a time to batch_transcode_h22_v210_prores.py
+2. Python script receives single path as sys.argv[1] and populates fullpath variable
+3. Populates FFmpeg subprocess command based on supplied fullpath, new generated output_fullpath and fixed FFmpeg command.*
+4. Transcodes new file into 'prores_transcode/' folder named as {filename}.mov
+5. Runs mediaconch checks against the ProRes file
+   - If pass:
+      i. Moves ProRes to finished_prores/ folder
+      ii. Deletes original V210 mov file (currently offline)
+   - If fails:
+      i. Moves ProRes mov to failures/ folder and appends failures log
+      ii. Deletes ProRes from failures folder (currently offline)
+     iii. Leaves original V210 mov for repeated encoding attempt
+
+*Note:  There may need to be adjustments to the fixed command in time if this ‘one command fits all’ approach
+is found to be lacking. For example -flags +ildct may not be the best option for all interlacing/progressive
+files where found. If this is the case then additional mediainfo metadata enquiries will be added to ensure
+a customised command is provided.
+
 Joanna White 2021
 '''
 
