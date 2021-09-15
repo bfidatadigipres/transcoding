@@ -2,23 +2,20 @@
 
 '''
 *** THIS SCRIPT MUST RUN WITH SHELL SCRIPT LAUNCH TO PASS FILES TO SYS.ARGV[1] AND DRIVE PARALLEL ***
-
-Script that takes V210 Mov files and encodes to ProRes mov:
+Script that takes V210 Matroska files and encodes to ProRes mov:
 1. Shell script searches in paths for files that end in '.mov' and passes on one at a time to Python
 2. Receives single path as sys.argv[1], checks metadata of file acquiring field order, colour data etc
-3. Populates FFmpeg subprocess command based on supplied fullpath and fixed FFmpeg command
-4. Transcodes new file into 'prores_transcode/' folder named as {filename}.mov
-5. Runs mediaconch checks against the ProRes file
-   If pass:
-     i. Moves ProRes to finished_prores/ folder
-     ii. Deletes original V210 mov file (currently offline)
-   If fails:
-     i. Moves ProRes mov to failures/ folder and appends failures log
-     ii. Deletes ProRes from failures folder (currently offline)
-     iii. Leaves original V210 mov for repeated encoding attempt
-
-STATUS: In test
-
+3. Populates FFmpeg subprocess command based on format decisiong from retrieved data
+4. Transcodes new file into 'transcode/' folder named as {filename}.mov
+5. Runs framemd5 checks against the FFV1 matroska and V210 mov file, checks if they're identical
+   If identical:
+     i. verifies V210 mov passes mediaconch policy
+     ii. If yes, moves identical V210 mov to success/ folder
+         If no, moves V210 mov to failures/ folder and appends failures log. Deletes V210 mov
+     iii. If mediaconch passed FFV1 matroska is deleted
+   If not identical:
+     i. File is not mediaconch checked but moved to failures/ and failure log updated
+     ii. V210 mov is deleted and FFV1 matroska is left in place for another transcoding attempt
 Joanna White 2021
 '''
 
@@ -75,7 +72,6 @@ def create_ffmpeg_command(fullpath):
     Subprocess command build, with variations
     added based on metadata extraction
     '''
-
     output_fullpath = change_path(fullpath, 'transcode')
 
     # Build subprocess call from data list
@@ -84,7 +80,8 @@ def create_ffmpeg_command(fullpath):
     ]
 
     input_video_file = [
-        "-i", fullpath
+        "-i", fullpath,
+        "-nostdin"
     ]
 
     map_command = [
@@ -226,14 +223,13 @@ def clean_up(fullpath, new_fullpath):
                 logger.info("%s passed the policy checker and it's Matroska can be deleted", new_file)
                 try:
                     new_file_path = change_path(fullpath, 'pass')
-                    shutil.move(new_fullpath, new_file_path)
-                    logger.inf("Moved passed ProRes %s to %s", new_file, new_file_path)
+                    shutil.move(fullpath, new_file_path)
                 except Exception:
                     logger.exception("Unable to move %s to success folder: %s", new_file, new_file_path)
                 try:
                     # Delete V210 MOV after successful encode to ProRes mov
                     logger.info("*** DELETION OF V210 MOV FOLLOWING SUCCESSFUL TRANSCODE: %s", fullpath)
-                    # os.remove(fullpath)
+                    os.remove(fullpath)
                 except Exception:
                     logger.exception("Deletion failure: %s", fullpath)
             else:
@@ -248,7 +244,7 @@ def clean_up(fullpath, new_fullpath):
                     logger.exception("Unable to move %s to failures/ folder: %s", new_file, fail_path)
                 try:
                     logger.info("Deleting %s file as failed mediaconch policy")
-                    # os.remove(fail_path)
+                    os.remove(fail_path)
                 except Exception:
                     logger.exception("Unable to delete %s", fail_path)
         else:
