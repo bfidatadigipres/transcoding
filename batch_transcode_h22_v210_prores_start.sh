@@ -30,6 +30,6 @@ find "${transcode_path2}" -maxdepth 1 -mindepth 1 -name "*.mov" -mmin +10 >> "${
 find "${transcode_path3}" -maxdepth 1 -mindepth 1 -name "*.mov" -mmin +10 >> "${dump_to}batch_transcode_h22_v210_prores_dump_text.txt"
 
 echo " == Launching GNU parallel to run multiple Python3 scripts for encoding == " >> "${log_path}batch_transcode_h22_v210_prores.log"
-grep '/mnt/' "${dump_to}batch_transcode_h22_v210_prores_dump_text.txt" | parallel --jobs 4 "python3 batch_transcode_h22_v210_prores.py {}"
+grep '/mnt/' "${dump_to}batch_transcode_h22_v210_prores_dump_text.txt" | parallel --jobs 3 "python3 batch_transcode_h22_v210_prores.py {}"
 
 echo " ========================= SHELL SCRIPT END ========================== $date_FULL" >> "${log_path}batch_transcode_h22_v210_prores.log"
