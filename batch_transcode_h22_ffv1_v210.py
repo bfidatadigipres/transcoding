@@ -18,6 +18,7 @@ Script that takes FFv1 Matroska files and encodes to v210 mov:
      i. File is not mediaconch checked but moved to failures/ and failure log updated
      ii. V210 mov is deleted and FFV1 matroska is left in place for another transcoding attempt
 
+Python 3.7+
 Joanna White 2021
 '''
 
@@ -351,13 +352,21 @@ def main():
             logger.info("FFmpeg call: %s", ffmpeg_call_neat)
             print(ffmpeg_call_neat)
 
+            tic = time.perf_counter()
             try:
                 subprocess.call(ffmpeg_call)
             except Exception as e:
                 logger.critical("FFmpeg command failed: %s", ffmpeg_call)
+            toc = time.perf_counter()
+            encode_time = (toc - tic) // 60
+            logger.info(f"*** Encoding time for {file}: {encode_time} minutes")
 
             # Check framemd5's match for MKV and MOV
+            tic2 = time.perf_counter()
             framemd5 = make_framemd5(fullpath)
+            toc2 = time.perf_counter()
+            md5_time = (toc2 - tic2) // 60
+            logger.info(f"*** MD5 creation time for FFV1 and MOV: {md5_time} minutes")
             md5_mkv = framemd5[0]
             md5_mov = framemd5[1]
             result = diff_check(md5_mkv, md5_mov)

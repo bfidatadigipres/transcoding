@@ -23,12 +23,14 @@ is found to be lacking. For example -flags +ildct may not be the best option for
 files where found. If this is the case then additional mediainfo metadata enquiries will be added to ensure
 a customised command is provided.
 
+Python 3.7+
 Joanna White 2021
 '''
 
 import os
 import subprocess
 import shutil
+import time
 import logging
 import sys
 
@@ -200,12 +202,15 @@ def main():
             logger.info("FFmpeg call: %s", ffmpeg_call_neat)
             print(ffmpeg_call_neat)
 
+            tic = time.perf_counter()
             try:
                 subprocess.call(ffmpeg_call)
                 logger.info("Subprocess call for FFmpeg command successful")
             except Exception as err:
                 logger.critical("FFmpeg command failed: %s\n%s", ffmpeg_call, err)
-
+            toc = time.perf_counter()
+            encoding_time = (toc - tic) // 60
+            logger.info(f"*** Encoding time for {file}: {encoding_time} minutes")
             logger.info("Checking if new Prores file passes Mediaconch policy")
             clean_up(fullpath, output_fullpath)
 
