@@ -210,7 +210,7 @@ def main():
                 logger.critical("FFmpeg command failed: %s\n%s", ffmpeg_call, err)
             toc = time.perf_counter()
             encoding_time = (toc - tic) // 60
-            logger.info(f"*** Encoding time for {file}: {encoding_time} minutes")
+            logger.info("*** Encoding time for %s: %s minutes", file, encoding_time)
             logger.info("Checking if new Prores file passes Mediaconch policy")
             clean_up(fullpath, output_fullpath)
 

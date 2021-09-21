@@ -36,7 +36,7 @@ LOG = os.environ['SCRIPT_LOG']
 
 # Setup logging
 logger = logging.getLogger('batch_transcode_h22_ffv1_v210')
-hdlr = logging.FileHandler(os.path.join(SCRIPT_LOG, 'batch_transcode_h22_ffv1_v210.log'))
+hdlr = logging.FileHandler(os.path.join(LOG, 'batch_transcode_h22_ffv1_v210.log'))
 formatter = logging.Formatter('%(asctime)s\t%(levelname)s\t%(message)s')
 hdlr.setFormatter(formatter)
 logger.addHandler(hdlr)
@@ -123,18 +123,18 @@ def change_path(fullpath, use):
 
     if 'transcode' in use:
         path_split = os.path.split(fullpath)
-        filename, extension = os.path.splitext(path_split[1])
-        return os.path.join(path_split[0], 'transcode/', '{}.mov'.format(filename))
+        filename = os.path.splitext(path_split[1])
+        return os.path.join(path_split[0], 'transcode/', '{}.mov'.format(filename[0]))
 
     elif 'move' in use:
         path_split = os.path.split(fullpath)
-        filename, extension = os.path.splitext(path_split[1])
-        return os.path.join(path_split[0], 'success/', '{}.mov'.format(filename))
+        filename = os.path.splitext(path_split[1])
+        return os.path.join(path_split[0], 'success/', '{}.mov'.format(filename[0]))
 
     elif 'fail' in use:
         path_split = os.path.split(fullpath)
-        filename, extension = os.path.splitext(path_split[1])
-        return os.path.join(path_split[0], 'failures/', '{}.mov'.format(filename))
+        filename = os.path.splitext(path_split[1])
+        return os.path.join(path_split[0], 'failures/', '{}.mov'.format(filename[0]))
 
     elif 'log' in use:
         path_split = os.path.split(fullpath)
@@ -212,7 +212,7 @@ def conformance_check(filepath):
     try:
         success = subprocess.check_output(mediaconch_cmd)
         success = str(success)
-    except:
+    except Exception:
         success = ""
         logger.warning("Mediaconch policy retrieval failure for %s", filepath)
 
@@ -239,9 +239,9 @@ def make_framemd5(fullpath):
     '''
     new_filepath = change_path(fullpath, 'transcode')
     fullpath_split = os.path.split(fullpath)
-    filename, ext = os.path.splitext(fullpath_split[1])
-    output_mkv = os.path.join(fullpath_split[0] + '/' + filename + '.mkv.framemd5')
-    output_mov = os.path.join(fullpath_split[0] + '/' + filename + '.mov.framemd5')
+    filename = os.path.splitext(fullpath_split[1])
+    output_mkv = os.path.join(fullpath_split[0] + '/' + filename[0] + '.mkv.framemd5')
+    output_mov = os.path.join(fullpath_split[0] + '/' + filename[0] + '.mov.framemd5')
 
     framemd5_mkv = [
         "ffmpeg", "-nostdin",
@@ -254,7 +254,7 @@ def make_framemd5(fullpath):
     try:
         logger.info("Beginning FRAMEMD5 generation for Matroska file %s", fullpath)
         subprocess.call(framemd5_mkv)
-    except:
+    except Exception:
         logger.exception("Framemd5 command failure: %s", fullpath)
 
     framemd5_mov = [
@@ -268,7 +268,7 @@ def make_framemd5(fullpath):
     try:
         logger.info("Beginning FRAMEMD5 generation for MOV file %s", new_filepath)
         subprocess.call(framemd5_mov)
-    except:
+    except Exception:
         logger.exception("Framemd5 command failure: %s", new_filepath)
 
     return (output_mkv, output_mov)
@@ -355,7 +355,7 @@ def main():
             tic = time.perf_counter()
             try:
                 subprocess.call(ffmpeg_call)
-            except Exception as e:
+            except Exception:
                 logger.critical("FFmpeg command failed: %s", ffmpeg_call)
             toc = time.perf_counter()
             encode_time = (toc - tic) // 60
@@ -407,6 +407,10 @@ def main():
 
 
 def clean_up(fullpath):
+    '''
+    Runs conformance check with MediaConch, and pass or fail
+    removes the relevant file and appends logs
+    '''
     new_file = change_path(fullpath, 'transcode')
     logger.info("Clean up begins for %s", new_file)
     if os.path.isfile(new_file):
