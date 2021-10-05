@@ -200,8 +200,7 @@ def main():
             ffmpeg_call = create_ffmpeg_command(fullpath)
             ffmpeg_call_neat = (" ".join(ffmpeg_call), "\n")
             logger.info("FFmpeg call: %s", ffmpeg_call_neat)
-            print(ffmpeg_call_neat)
-
+            # tic/toc record encoding time
             tic = time.perf_counter()
             try:
                 subprocess.call(ffmpeg_call)
@@ -229,40 +228,41 @@ def clean_up(fullpath, new_fullpath):
     logger.info("Clean up begins for %s", new_fullpath)
     if os.path.isfile(new_fullpath):
         if new_fullpath.endswith(".mov"):
-            logger.info("Conformance check: comparing %s with policy", new_file)
+            logger.info("Conformance check: comparing %s with policy", new_file[1])
             result = conformance_check(new_fullpath)
             if "PASS!" in result:
-                logger.info("%s passed the policy checker and it's Matroska can be deleted", new_file)
+                logger.info("%s passed the policy checker and it's V210 can be deleted", new_file[1])
                 try:
                     new_file_path = change_path(fullpath, 'pass')
-                    shutil.move(fullpath, new_file_path)
+                    shutil.move(new_fullpath, new_file_path)
+                    logger.info("Moving passed prores %s to completed folder: %s", new_file[1], new_file_path)
                 except Exception:
-                    logger.exception("Unable to move %s to success folder: %s", new_file, new_file_path)
+                    logger.exception("Unable to move %s to success folder: %s", new_file[1], new_file_path)
                 try:
                     # Delete V210 MOV after successful encode to ProRes mov
-                    logger.info("*** DELETION OF V210 MOV FOLLOWING SUCCESSFUL TRANSCODE: %s", fullpath)
+                    logger.info("*** Deletion of V210 following successful transcode: %s", fullpath)
                     os.remove(fullpath)
                 except Exception:
                     logger.exception("Deletion failure: %s", fullpath)
             else:
-                logger.warning("FAIL: %s failed the policy checker. Leaving V210 mov for second encoding attempt", new_file)
+                logger.warning("FAIL: %s failed the policy checker. Leaving V210 mov for second encoding attempt", new_file[1])
                 fail_log(new_fullpath, result)
                 fail_path = change_path(fullpath, 'fail')
                 try:
                     # Delete MOV from failures/ path
-                    logger.info("Moving %s to failures/ folder: %s", new_file, fail_path)
+                    logger.info("Moving %s to failures/ folder: %s", new_file[1], fail_path)
                     shutil.move(new_fullpath, fail_path)
                 except Exception:
-                    logger.exception("Unable to move %s to failures/ folder: %s", new_file, fail_path)
+                    logger.exception("Unable to move %s to failures/ folder: %s", new_file[1], fail_path)
                 try:
                     logger.info("Deleting %s file as failed mediaconch policy")
                     os.remove(fail_path)
                 except Exception:
                     logger.exception("Unable to delete %s", fail_path)
         else:
-            logger.info("Skipping %s, as this file is not ended .mov", new_file)
+            logger.info("Skipping %s, as this file is not ended .mov", new_file[1])
     else:
-        logger.warning("NOT A FILE: %s what is this?", new_file)
+        logger.warning("NOT A FILE: %s what is this?", new_file[1])
 
 
 if __name__ == "__main__":
