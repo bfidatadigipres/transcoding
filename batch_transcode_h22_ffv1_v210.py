@@ -371,9 +371,11 @@ def main():
             md5_mov = framemd5[1]
             result = diff_check(md5_mkv, md5_mov)
             if 'MATCH' in result:
-                logger.info("Framemd5 check passed for %s and %s\nMoving to top level framemd5 folder", md5_mkv, md5_mov)
-                shutil.move(md5_mov, FRAMEMD5_PATH)
-                shutil.move(md5_mkv, FRAMEMD5_PATH)
+                logger.info("Framemd5 check passed for %s and %s\nCopying to top level framemd5 folder (deleting local version)", md5_mkv, md5_mov)
+                shutil.copy(md5_mov, FRAMEMD5_PATH)
+                shutil.copy(md5_mkv, FRAMEMD5_PATH)
+                os.remove(md5_mov)
+                os.remove(md5_mkv)
                 clean_up(fullpath)
             else:
                 fail_path = change_path(fullpath, 'fail')
