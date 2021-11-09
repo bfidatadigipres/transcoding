@@ -218,15 +218,15 @@ def conformance_check(filepath):
 
     if 'N/A!' in success:
         logger.info("***** FAIL! Problem with the MediaConch policy suspected. Check <%s> manually *****\n%s", filepath, success)
-        return "FAIL!"
+        return f"FAIL! {success}"
     elif 'pass!' in success:
         logger.info("PASS: %s has passed the mediaconch policy", filepath)
         return "PASS!"
     elif 'fail!' in success:
         logger.warning("FAIL! The policy has failed for %s:\n %s", filepath, success)
-        return "FAIL!"
+        return f"FAIL! {success}"
     else:
-        return "FAIL!"
+        return f"FAIL! {success}"
         logger.warning("FAIL! The policy has failed for %s:\n%s", filepath, success)
 
 
