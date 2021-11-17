@@ -25,6 +25,6 @@ find "${transcode_path1}" -name "*.mov" -mmin +10 >> "${dump_to}proresHD_dump_te
 find "${transcode_path2}" -name "*.mov" -mmin +10 >> "${dump_to}proresHD_dump_text.txt"
 find "${transcode_path3}" -name "*.mov" -mmin +10 >> "${dump_to}proresHD_dump_text.txt"
 
-grep '/mnt/' "${dump_to}proresHD_dump_text.txt" | parallel --jobs 3 "python3 batch_transcode_proresHD_mp4.py {}"
+grep '/mnt/' "${dump_to}proresHD_dump_text.txt" | parallel --jobs 1 "python3 batch_transcode_proresHD_mp4.py {}"
 
 echo " ===================== SHELL SCRIPT END ======================== " >> "${log}batch_transcode_proresHD_mp4.log"

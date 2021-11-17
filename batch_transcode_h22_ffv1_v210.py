@@ -18,6 +18,7 @@ Script that takes FFv1 Matroska files and encodes to v210 mov:
      i. File is not mediaconch checked but moved to failures/ and failure log updated
      ii. V210 mov is deleted and FFV1 matroska is left in place for another transcoding attempt
 
+Python 3.7+
 Joanna White 2021
 '''
 
@@ -35,7 +36,7 @@ LOG = os.environ['SCRIPT_LOG']
 
 # Setup logging
 logger = logging.getLogger('batch_transcode_h22_ffv1_v210')
-hdlr = logging.FileHandler(os.path.join(SCRIPT_LOG, 'batch_transcode_h22_ffv1_v210.log'))
+hdlr = logging.FileHandler(os.path.join(LOG, 'batch_transcode_h22_ffv1_v210.log'))
 formatter = logging.Formatter('%(asctime)s\t%(levelname)s\t%(message)s')
 hdlr.setFormatter(formatter)
 logger.addHandler(hdlr)
@@ -173,19 +174,19 @@ def create_ffmpeg_command(fullpath, data=None):
     ]
 
     video_settings = [
-        "-c:v", "{}".format(data[0])
+        "-c:v", f"{data[0]}"
     ]
 
     colour_build = [
-        "-color_primaries", "{}".format(data[4]),
-        "-color_trc", "{}".format(data[3]),
-        "-colorspace", "{}".format(data[2]),
+        "-color_primaries", f"{data[4]}",
+        "-color_trc", f"{data[3]}",
+        "-colorspace", f"{data[2]}",
         "-color_range", "1",
-        "-metadata:s:v:0", "'encoder={}'".format(data[1])
+        "-metadata:s:v:0", f"'encoder={data[1]}'"
     ]
 
     interlace = [
-        "-vf", "setfield={}".format(data[5])
+        "-vf", f"setfield={data[5]}"
     ]
 
     audio_settings = [
@@ -215,21 +216,21 @@ def conformance_check(filepath):
     try:
         success = subprocess.check_output(mediaconch_cmd)
         success = str(success)
-    except:
+    except Exception:
         success = ""
         logger.warning("Mediaconch policy retrieval failure for %s", filepath)
 
     if 'N/A!' in success:
         logger.info("***** FAIL! Problem with the MediaConch policy suspected. Check <%s> manually *****\n%s", filepath, success)
-        return "FAIL!"
+        return f"FAIL! {success}"
     elif 'pass!' in success:
         logger.info("PASS: %s has passed the mediaconch policy", filepath)
         return "PASS!"
     elif 'fail!' in success:
         logger.warning("FAIL! The policy has failed for %s:\n %s", filepath, success)
-        return "FAIL!"
+        return f"FAIL! {success}"
     else:
-        return "FAIL!"
+        return f"FAIL! {success}"
         logger.warning("FAIL! The policy has failed for %s:\n%s", filepath, success)
 
 
@@ -242,9 +243,9 @@ def make_framemd5(fullpath):
     '''
     new_filepath = change_path(fullpath, 'transcode')
     fullpath_split = os.path.split(fullpath)
-    filename, ext = os.path.splitext(fullpath_split[1])
-    output_mkv = os.path.join(fullpath_split[0] + '/' + filename + '.mkv.framemd5')
-    output_mov = os.path.join(fullpath_split[0] + '/' + filename + '.mov.framemd5')
+    filename = os.path.splitext(fullpath_split[1])
+    output_mkv = os.path.join(fullpath_split[0] + '/' + filename[0] + '.mkv.framemd5')
+    output_mov = os.path.join(fullpath_split[0] + '/' + filename[0] + '.mov.framemd5')
 
     framemd5_mkv = [
         "ffmpeg", "-nostdin",
@@ -257,7 +258,7 @@ def make_framemd5(fullpath):
     try:
         logger.info("Beginning FRAMEMD5 generation for Matroska file %s", fullpath)
         subprocess.call(framemd5_mkv)
-    except:
+    except Exception:
         logger.exception("Framemd5 command failure: %s", fullpath)
 
     framemd5_mov = [
@@ -271,7 +272,7 @@ def make_framemd5(fullpath):
     try:
         logger.info("Beginning FRAMEMD5 generation for MOV file %s", new_filepath)
         subprocess.call(framemd5_mov)
-    except:
+    except Exception:
         logger.exception("Framemd5 command failure: %s", new_filepath)
 
     return (output_mkv, output_mov)
@@ -308,7 +309,7 @@ def fail_log(fullpath, message):
     message = str(message)
     if os.path.isfile(fail_log_path):
         with open(fail_log_path, 'a') as log_data:
-            log_data.write("================= {} ================\n".format(fullpath))
+            log_data.write(f"================= {fullpath} ================\n")
             log_data.write(message)
             log_data.write("\n")
             log_data.close()
@@ -316,7 +317,7 @@ def fail_log(fullpath, message):
         with open(fail_log_path, 'x') as log_data:
             log_data.close()
         with open(fail_log_path, 'a') as log_data:
-            log_data.write("================= {} ================\n".format(fullpath))
+            log_data.write(f"================= {fullpath} ================\n")
             log_data.write(message)
             log_data.write("\n")
             log_data.close()
@@ -355,31 +356,41 @@ def main():
             logger.info("FFmpeg call: %s", ffmpeg_call_neat)
             print(ffmpeg_call_neat)
 
+            tic = time.perf_counter()
             try:
                 subprocess.call(ffmpeg_call)
-            except Exception as e:
+            except Exception:
                 logger.critical("FFmpeg command failed: %s", ffmpeg_call)
+            toc = time.perf_counter()
+            encode_time = (toc - tic) // 60
+            logger.info(f"*** Encoding time for {file}: {encode_time} minutes")
 
             # Check framemd5's match for MKV and MOV
+            tic2 = time.perf_counter()
             framemd5 = make_framemd5(fullpath)
+            toc2 = time.perf_counter()
+            md5_time = (toc2 - tic2) // 60
+            logger.info(f"*** MD5 creation time for FFV1 and MOV: {md5_time} minutes")
             md5_mkv = framemd5[0]
             md5_mov = framemd5[1]
             result = diff_check(md5_mkv, md5_mov)
             if 'MATCH' in result:
-                logger.info("Framemd5 check passed for %s and %s\nMoving to top level framemd5 folder", md5_mkv, md5_mov)
-                shutil.move(md5_mov, FRAMEMD5_PATH)
-                shutil.move(md5_mkv, FRAMEMD5_PATH)
+                logger.info("Framemd5 check passed for %s and %s\nCopying to top level framemd5 folder (deleting local version)", md5_mkv, md5_mov)
+                shutil.copy(md5_mov, FRAMEMD5_PATH)
+                shutil.copy(md5_mkv, FRAMEMD5_PATH)
+                os.remove(md5_mov)
+                os.remove(md5_mkv)
                 clean_up(fullpath)
             else:
                 fail_path = change_path(fullpath, 'fail')
                 new_file = change_path(fullpath, 'transcode')
                 mkv_fail_path = change_path(fullpath, 'mkv_fail')
-                fail_log(fullpath, "{} being deleted due to Framemd5 mis-match. Failed framemd5 manifests moving to 'framemd5/' appended 'failed_' for review".format(fail_path))
+                fail_log(fullpath, f"{fail_path} being deleted due to Framemd5 mis-match. Failed framemd5 manifests moving to 'framemd5/' appended 'failed_' for review")
                 logger.warning("FRAMEMD5 FILES DO NOT MATCH. Moving Matroska to framemd5_fail/ folder for review")
                 md5_mkv_split = os.path.split(md5_mkv)
-                rename_md5_mkv = os.path.join(FRAMEMD5_PATH, 'failed_{}'.format(md5_mkv_split[1]))
+                rename_md5_mkv = os.path.join(FRAMEMD5_PATH, f'failed_{md5_mkv_split[1]}')
                 md5_mov_split = os.path.split(md5_mov)
-                rename_md5_mov = os.path.join(FRAMEMD5_PATH, 'failed_{}'.format(md5_mov_split[1]))
+                rename_md5_mov = os.path.join(FRAMEMD5_PATH, f'failed_{md5_mov_split[1]}')
                 try:
                     shutil.move(md5_mov, rename_md5_mov)
                     shutil.move(md5_mkv, rename_md5_mkv)
@@ -408,6 +419,10 @@ def main():
 
 
 def clean_up(fullpath):
+    '''
+    Runs conformance check with MediaConch, and pass or fail
+    removes the relevant file and appends logs
+    '''
     new_file = change_path(fullpath, 'transcode')
     logger.info("Clean up begins for %s", new_file)
     if os.path.isfile(new_file):

@@ -2,29 +2,35 @@
 
 '''
 *** THIS SCRIPT MUST RUN WITH SHELL SCRIPT LAUNCH TO PASS FILES TO SYS.ARGV[1] AND DRIVE PARALLEL ***
+Script that takes V210 Matroska files and encodes to ProRes mov:
 
-Script that takes V210 Mov files and encodes to ProRes mov:
-1. Shell script searches in paths for files that end in '.mov' and passes on one at a time to Python
-2. Receives single path as sys.argv[1], checks metadata of file acquiring field order, colour data etc
-3. Populates FFmpeg subprocess command based on supplied fullpath and fixed FFmpeg command
+1. Shell script searches in paths for files that end in '.mov' not modified in the last ten minutes and at a depth of 1 folder,
+   then passes any found one at a time to batch_transcode_h22_v210_prores.py
+2. Python script receives single path as sys.argv[1] and populates fullpath variable
+3. Populates FFmpeg subprocess command based on supplied fullpath, new generated output_fullpath and fixed FFmpeg command.*
 4. Transcodes new file into 'prores_transcode/' folder named as {filename}.mov
 5. Runs mediaconch checks against the ProRes file
-   If pass:
-     i. Moves ProRes to finished_prores/ folder
-     ii. Deletes original V210 mov file (currently offline)
-   If fails:
-     i. Moves ProRes mov to failures/ folder and appends failures log
-     ii. Deletes ProRes from failures folder (currently offline)
+   - If pass:
+      i. Moves ProRes to finished_prores/ folder
+      ii. Deletes original V210 mov file (currently offline)
+   - If fails:
+      i. Moves ProRes mov to failures/ folder and appends failures log
+      ii. Deletes ProRes from failures folder (currently offline)
      iii. Leaves original V210 mov for repeated encoding attempt
 
-STATUS: In test
+*Note:  There may need to be adjustments to the fixed command in time if this ‘one command fits all’ approach
+is found to be lacking. For example -flags +ildct may not be the best option for all interlacing/progressive
+files where found. If this is the case then additional mediainfo metadata enquiries will be added to ensure
+a customised command is provided.
 
+Python 3.7+
 Joanna White 2021
 '''
 
 import os
 import subprocess
 import shutil
+import time
 import logging
 import sys
 
@@ -75,7 +81,6 @@ def create_ffmpeg_command(fullpath):
     Subprocess command build, with variations
     added based on metadata extraction
     '''
-
     output_fullpath = change_path(fullpath, 'transcode')
 
     # Build subprocess call from data list
@@ -84,7 +89,8 @@ def create_ffmpeg_command(fullpath):
     ]
 
     input_video_file = [
-        "-i", fullpath
+        "-i", fullpath,
+        "-nostdin"
     ]
 
     map_command = [
@@ -194,14 +200,16 @@ def main():
             ffmpeg_call = create_ffmpeg_command(fullpath)
             ffmpeg_call_neat = (" ".join(ffmpeg_call), "\n")
             logger.info("FFmpeg call: %s", ffmpeg_call_neat)
-            print(ffmpeg_call_neat)
-
+            # tic/toc record encoding time
+            tic = time.perf_counter()
             try:
                 subprocess.call(ffmpeg_call)
                 logger.info("Subprocess call for FFmpeg command successful")
             except Exception as err:
                 logger.critical("FFmpeg command failed: %s\n%s", ffmpeg_call, err)
-
+            toc = time.perf_counter()
+            encoding_time = (toc - tic) // 60
+            logger.info("*** Encoding time for %s: %s minutes", file, encoding_time)
             logger.info("Checking if new Prores file passes Mediaconch policy")
             clean_up(fullpath, output_fullpath)
 
@@ -220,41 +228,41 @@ def clean_up(fullpath, new_fullpath):
     logger.info("Clean up begins for %s", new_fullpath)
     if os.path.isfile(new_fullpath):
         if new_fullpath.endswith(".mov"):
-            logger.info("Conformance check: comparing %s with policy", new_file)
+            logger.info("Conformance check: comparing %s with policy", new_file[1])
             result = conformance_check(new_fullpath)
             if "PASS!" in result:
-                logger.info("%s passed the policy checker and it's Matroska can be deleted", new_file)
+                logger.info("%s passed the policy checker and it's V210 can be deleted", new_file[1])
                 try:
                     new_file_path = change_path(fullpath, 'pass')
                     shutil.move(new_fullpath, new_file_path)
-                    logger.inf("Moved passed ProRes %s to %s", new_file, new_file_path)
+                    logger.info("Moving passed prores %s to completed folder: %s", new_file[1], new_file_path)
                 except Exception:
-                    logger.exception("Unable to move %s to success folder: %s", new_file, new_file_path)
+                    logger.exception("Unable to move %s to success folder: %s", new_file[1], new_file_path)
                 try:
                     # Delete V210 MOV after successful encode to ProRes mov
-                    logger.info("*** DELETION OF V210 MOV FOLLOWING SUCCESSFUL TRANSCODE: %s", fullpath)
-                    # os.remove(fullpath)
+                    logger.info("*** Deletion of V210 following successful transcode: %s", fullpath)
+                    os.remove(fullpath)
                 except Exception:
                     logger.exception("Deletion failure: %s", fullpath)
             else:
-                logger.warning("FAIL: %s failed the policy checker. Leaving V210 mov for second encoding attempt", new_file)
+                logger.warning("FAIL: %s failed the policy checker. Leaving V210 mov for second encoding attempt", new_file[1])
                 fail_log(new_fullpath, result)
                 fail_path = change_path(fullpath, 'fail')
                 try:
                     # Delete MOV from failures/ path
-                    logger.info("Moving %s to failures/ folder: %s", new_file, fail_path)
+                    logger.info("Moving %s to failures/ folder: %s", new_file[1], fail_path)
                     shutil.move(new_fullpath, fail_path)
                 except Exception:
-                    logger.exception("Unable to move %s to failures/ folder: %s", new_file, fail_path)
+                    logger.exception("Unable to move %s to failures/ folder: %s", new_file[1], fail_path)
                 try:
                     logger.info("Deleting %s file as failed mediaconch policy")
-                    # os.remove(fail_path)
+                    os.remove(fail_path)
                 except Exception:
                     logger.exception("Unable to delete %s", fail_path)
         else:
-            logger.info("Skipping %s, as this file is not ended .mov", new_file)
+            logger.info("Skipping %s, as this file is not ended .mov", new_file[1])
     else:
-        logger.warning("NOT A FILE: %s what is this?", new_file)
+        logger.warning("NOT A FILE: %s what is this?", new_file[1])
 
 
 if __name__ == "__main__":

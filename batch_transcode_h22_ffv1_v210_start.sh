@@ -11,9 +11,7 @@ transcode_path1="$H22_PATH1"
 transcode_path2="$H22_PATH2"
 dump_to="$TRANSCODE"
 log_path="$SCRIPT_LOG"
-
-# Directory path change just to run shell find commands
-cd "${dump_to}"
+python_script="$SCRIPT_FFV1_V210"
 
 # replace list to ensure clean data
 rm "${dump_to}batch_transcode_h22_ffv1_v210_dump_text.txt"
@@ -24,10 +22,10 @@ echo " == Start batch_transcode_h22_ffv1_v210 in $transcode_path1 and $transcode
 echo " == Shell script creating dump_text.txt output for parallel launch of Python scripts == " >> "${log_path}batch_transcode_h22_ffv1_v210.log"
 
 # Command to build MKV list from two v210 paths containing multiple archive folders
-find "${transcode_path1}" -name "*.mkv" -mmin +10 -maxdepth 3 -mindepth 3 >> "${dump_to}batch_transcode_h22_ffv1_v210_dump_text.txt"
-find "${transcode_path2}" -name "*.mkv" -mmin +10 -maxdepth 3 -mindepth 3 >> "${dump_to}batch_transcode_h22_ffv1_v210_dump_text.txt"
+find "${transcode_path1}" -maxdepth 3 -mindepth 3 -name "*.mkv" -mmin +10 >> "${dump_to}batch_transcode_h22_ffv1_v210_dump_text.txt"
+find "${transcode_path2}" -maxdepth 3 -mindepth 3 -name "*.mkv" -mmin +10 >> "${dump_to}batch_transcode_h22_ffv1_v210_dump_text.txt"
 
 echo " == Launching GNU parallel to run muliple Python3 scripts for encoding == " >> "${log_path}batch_transcode_h22_ffv1_v210.log"
-grep '/mnt/' "${dump_to}batch_transcode_h22_ffv1_v210_dump_text.txt" | parallel --jobs 4 "python3 batch_transcode_h22_ffv1_v210.py {}"
+grep '/mnt/' "${dump_to}batch_transcode_h22_ffv1_v210_dump_text.txt" | parallel --jobs 3 "python3 $python_script {}"
 
 echo " ========================= SHELL SCRIPT END ========================== $date_FULL" >> "${log_path}batch_transcode_h22_ffv1_v210.log"
