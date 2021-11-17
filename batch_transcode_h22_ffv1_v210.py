@@ -123,17 +123,21 @@ def change_path(fullpath, use):
     if 'transcode' in use:
         path_split = os.path.split(fullpath)
         filename, extension = os.path.splitext(path_split[1])
-        return os.path.join(path_split[0], 'transcode/', '{}.mov'.format(filename))
+        return os.path.join(path_split[0], 'transcode/', f'{filename}.mov')
 
     elif 'move' in use:
         path_split = os.path.split(fullpath)
         filename, extension = os.path.splitext(path_split[1])
-        return os.path.join(path_split[0], 'success/', '{}.mov'.format(filename))
+        return os.path.join(path_split[0], 'success/', f'{filename}.mov')
 
     elif 'fail' in use:
         path_split = os.path.split(fullpath)
         filename, extension = os.path.splitext(path_split[1])
-        return os.path.join(path_split[0], 'failures/', '{}.mov'.format(filename))
+        return os.path.join(path_split[0], 'failures/', f'{filename}.mov')
+
+    elif 'mkv_fail' in use:
+        path_split = os.path.split(fullpath)
+        return os.path.join(path_split[0], 'framemd5_fail/', f'{path_split[1]}')
 
     elif 'log' in use:
         path_split = os.path.split(fullpath)
@@ -369,8 +373,9 @@ def main():
             else:
                 fail_path = change_path(fullpath, 'fail')
                 new_file = change_path(fullpath, 'transcode')
+                mkv_fail_path = change_path(fullpath, 'mkv_fail')
                 fail_log(fullpath, "{} being deleted due to Framemd5 mis-match. Failed framemd5 manifests moving to 'framemd5/' appended 'failed_' for review".format(fail_path))
-                logger.warning("FRAMEMD5 FILES DO NOT MATCH. Cleaning up files to enable re-encoding attempt")
+                logger.warning("FRAMEMD5 FILES DO NOT MATCH. Moving Matroska to framemd5_fail/ folder for review")
                 md5_mkv_split = os.path.split(md5_mkv)
                 rename_md5_mkv = os.path.join(FRAMEMD5_PATH, 'failed_{}'.format(md5_mkv_split[1]))
                 md5_mov_split = os.path.split(md5_mov)
@@ -381,6 +386,11 @@ def main():
                     logger.info("Moving framemd5 manifest to framemd5/ folder renamed 'failed_'")
                 except Exception:
                     logger.warning("Unable to move framemd5 files to failures/ folder")
+                try:
+                    shutil.move(fullpath, mkv_fail_path)
+                    logger.info("Moving MKV to framemd5_fail/ folder for review")
+                except Exception:
+                    logger.warning("Failed to move MKV to framemd5_fail/ folder: %s", mkv_fail_path)
                 try:
                     shutil.move(new_file, fail_path)
                     logger.info("Moving %s to failures/ folder: %s before deletion", new_file, fail_path)
