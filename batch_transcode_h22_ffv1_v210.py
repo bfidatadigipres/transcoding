@@ -290,7 +290,7 @@ def diff_check(md5_mkv, md5_mov):
     try:
         success = subprocess.check_output(diff_cmd)
         success = str(success)
-    except:
+    except Exception:
         success = ""
         logger.warning("Diff check failed for %s and %s", md5_mkv, md5_mov)
 
@@ -358,14 +358,14 @@ def main():
                 logger.critical("FFmpeg command failed: %s", ffmpeg_call)
             toc = time.perf_counter()
             encode_time = (toc - tic) // 60
-            logger.info(f"*** Encoding time for {file}: {encode_time} minutes")
+            logger.info("*** Encoding time for %s: %s minutes", file, encode_time)
 
             # Check framemd5's match for MKV and MOV
             tic2 = time.perf_counter()
             framemd5 = make_framemd5(fullpath)
             toc2 = time.perf_counter()
             md5_time = (toc2 - tic2) // 60
-            logger.info(f"*** MD5 creation time for FFV1 and MOV: {md5_time} minutes")
+            logger.info("*** MD5 creation time for FFV1 and MOV: %s minutes", md5_time)
             md5_mkv = framemd5[0]
             md5_mov = framemd5[1]
             result = diff_check(md5_mkv, md5_mov)
