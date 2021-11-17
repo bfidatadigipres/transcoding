@@ -10,6 +10,7 @@ transcode_path1="$H22_FILM_PATH1"
 transcode_path2="$H22_FILM_PATH2"
 transcode_path3="$H22_FILM_PATH3"
 dump_to="$TRANSCODE"
+python="$GIT_TRANSCODE"
 
 rm "${dump_to}proresHD_dump_text.txt"
 touch "${dump_to}proresHD_dump_text.txt"
@@ -25,6 +26,6 @@ find "${transcode_path1}" -name "*.mov" -mmin +10 >> "${dump_to}proresHD_dump_te
 find "${transcode_path2}" -name "*.mov" -mmin +10 >> "${dump_to}proresHD_dump_text.txt"
 find "${transcode_path3}" -name "*.mov" -mmin +10 >> "${dump_to}proresHD_dump_text.txt"
 
-grep '/mnt/' "${dump_to}proresHD_dump_text.txt" | parallel --jobs 1 "python3 /home/datadigipres/git/transcoding/batch_transcode_proresHD_mp4.py {}"
+grep '/mnt/' "${dump_to}proresHD_dump_text.txt" | parallel --jobs 1 "python3 ${python}batch_transcode_proresHD_mp4.py {}"
 
 echo " ===================== SHELL SCRIPT END ======================== " >> "${log}batch_transcode_proresHD_mp4.log"
