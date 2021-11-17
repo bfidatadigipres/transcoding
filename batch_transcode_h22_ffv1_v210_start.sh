@@ -26,6 +26,6 @@ find "${transcode_path1}" -maxdepth 3 -mindepth 3 -name "*.mkv" -mmin +10 >> "${
 find "${transcode_path2}" -maxdepth 3 -mindepth 3 -name "*.mkv" -mmin +10 >> "${dump_to}batch_transcode_h22_ffv1_v210_dump_text.txt"
 
 echo " == Launching GNU parallel to run muliple Python3 scripts for encoding == " >> "${log_path}batch_transcode_h22_ffv1_v210.log"
-grep '/mnt/' "${dump_to}batch_transcode_h22_ffv1_v210_dump_text.txt" | parallel --jobs 3 "python3 $python_script {}"
+grep '/mnt/' "${dump_to}batch_transcode_h22_ffv1_v210_dump_text.txt" | parallel --jobs 1 "python3 $python_script {}"
 
 echo " ========================= SHELL SCRIPT END ========================== $date_FULL" >> "${log_path}batch_transcode_h22_ffv1_v210.log"
