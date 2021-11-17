@@ -302,25 +302,20 @@ def diff_check(md5_mkv, md5_mov):
 
 def fail_log(fullpath, message):
     '''
-    Appends failure message if log present, otherwise creates fail log
-    and appends new message to it
+    Creates fail log if not in existence
+    Appends new message to log
     '''
     fail_log_path = change_path(fullpath, 'log')
     message = str(message)
-    if os.path.isfile(fail_log_path):
-        with open(fail_log_path, 'a') as log_data:
-            log_data.write(f"================= {fullpath} ================\n")
-            log_data.write(message)
-            log_data.write("\n")
-            log_data.close()
-    else:
+    if not os.path.isfile(fail_log_path):
         with open(fail_log_path, 'x') as log_data:
             log_data.close()
-        with open(fail_log_path, 'a') as log_data:
-            log_data.write(f"================= {fullpath} ================\n")
-            log_data.write(message)
-            log_data.write("\n")
-            log_data.close()
+
+    with open(fail_log_path, 'a') as log_data:
+        log_data.write(f"================= {fullpath} ================\n")
+        log_data.write(message)
+        log_data.write("\n")
+        log_data.close()
 
 
 def main():
