@@ -28,11 +28,11 @@ Joanna White 2021
 '''
 
 import os
-import subprocess
-import shutil
-import time
-import logging
 import sys
+import time
+import shutil
+import logging
+import subprocess
 
 # Global paths from server environmental variables
 PATH_POLICY = os.environ['H22_POLICIES']
@@ -54,25 +54,16 @@ def change_path(fullpath, use):
     '''
     Takes fullpath and use argument and returns formatted path
     '''
+    path_split = os.path.split(fullpath)
+    path_split2 = os.path.split(path_split[0])
 
     if 'transcode' in use:
-        path_split = os.path.split(fullpath)
-        path_split2 = os.path.split(path_split[0])
         return os.path.join(path_split2[0], f'prores_transcode/{path_split[1]}')
-
-    if 'pass' in use:
-        path_split = os.path.split(fullpath)
-        path_split2 = os.path.split(path_split[0])
+    elif 'pass' in use:
         return os.path.join(path_split2[0], f'finished_prores/{path_split[1]}')
-
-    if 'fail' in use:
-        path_split = os.path.split(fullpath)
-        path_split2 = os.path.split(path_split[0])
+    elif 'fail' in use:
         return os.path.join(path_split2[0], f'failures/{path_split[1]}')
-
-    if 'fail_log' in use:
-        path_split = os.path.split(fullpath)
-        path_split2 = os.path.split(path_split[0])
+    elif 'fail_log' in use:
         return os.path.join(path_split2[0], "failures/h22_mov_failure.log")
 
 
@@ -195,22 +186,28 @@ def main():
         file = path_split[1]
         output_fullpath = change_path(fullpath, 'transcode')
         if file.startswith("N_") and '/prores/' in fullpath:
+            logger_data = []
             # Execute FFmpeg subprocess call
-            logger.info("******** <%s> being processed ********", fullpath)
+            logger_data.append(f"******** {fullpath} being processed ********")
             ffmpeg_call = create_ffmpeg_command(fullpath)
             ffmpeg_call_neat = (" ".join(ffmpeg_call), "\n")
-            logger.info("FFmpeg call: %s", ffmpeg_call_neat)
+            logger_data.append(f"FFmpeg call: {ffmpeg_call_neat}")
             # tic/toc record encoding time
             tic = time.perf_counter()
             try:
                 subprocess.call(ffmpeg_call)
-                logger.info("Subprocess call for FFmpeg command successful")
+                logger_data.append("Subprocess call for FFmpeg command successful")
             except Exception as err:
-                logger.critical("FFmpeg command failed: %s\n%s", ffmpeg_call, err)
+                logger_data.append(f"WARNING: FFmpeg command failed: {ffmpeg_call_neat}\n{err}")
             toc = time.perf_counter()
             encoding_time = (toc - tic) // 60
-            logger.info("*** Encoding time for %s: %s minutes", file, encoding_time)
-            logger.info("Checking if new Prores file passes Mediaconch policy")
+            logger_data.append(f"*** Encoding time for {file}: {encoding_time} minutes")
+            logger_data.append("Checking if new Prores file passes Mediaconch policy")
+            for line in logger_data:
+                if 'WARNING' in str(line):
+                    logger.warning("%s", line)
+                else:
+                    logger.info("%s", line)
             clean_up(fullpath, output_fullpath)
 
         else:
@@ -241,7 +238,7 @@ def clean_up(fullpath, new_fullpath):
                 try:
                     # Delete V210 MOV after successful encode to ProRes mov
                     logger.info("*** Deletion of V210 following successful transcode: %s", fullpath)
-                    os.remove(fullpath)
+#                    os.remove(fullpath)
                 except Exception:
                     logger.exception("Deletion failure: %s", fullpath)
             else:
