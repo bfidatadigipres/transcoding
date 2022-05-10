@@ -16,7 +16,7 @@ MediaInfo - https://mediaarea.net/mediainfo
 FFmpeg - http://ffmpeg.org/  
 FFprobe - https://ffmpeg.org/ffprobe.html  
 
-To run the concurrent processes the scripts use GNU Parallel which will require installation (with dependencies of it's own that may include the following):
+To run the concurrent processes the scripts use GNU Parallel which will require installation (with dependencies of its own that may include the following):
 
     GNU parallel may also require: sysstat 12.2.0, libsensors 5-6.0, libsensors-config 3.6.0
     available here http://archive.ubuntu.com/ubuntu/pool/main/l/lm-sensors/libsensors-config_3.6.0-2ubuntu1_all.deb
