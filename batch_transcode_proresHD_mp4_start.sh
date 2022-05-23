@@ -9,7 +9,7 @@ log="$SCRIPT_LOG"
 transcode_path1="$H22_FILM_PATH1"
 transcode_path2="$H22_FILM_PATH2"
 transcode_path3="$H22_FILM_PATH3"
-dump_to="$TRANSCODE"
+dump_to="$GIT_TRANSCODE"
 python="$GIT_TRANSCODE"
 
 rm "${dump_to}proresHD_dump_text.txt"

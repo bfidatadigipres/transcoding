@@ -10,7 +10,7 @@ date_FULL=$(date +'%Y-%m-%d - %T')
 transcode_path1="${QNAP04_H22}hdd/prores/SASE/success/"
 transcode_path2="${QNAP04_H22}lto/prores/YFA/success/"
 transcode_path3="${QNAP04_H22}lto/prores/NEFA/success/"
-dump_to="$TRANSCODE"
+dump_to="$GIT_TRANSCODE"
 log_path="$SCRIPT_LOG"
 script_path="$SCRIPT_V210_PRORES"
 

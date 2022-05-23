@@ -11,7 +11,7 @@ transcode_path1="${H22_PATH1}prores/SASE/source"
 transcode_path2="${H22_PATH2}prores/NEFA/source"
 transcode_path3="${H22_PATH2}prores/YFA/source"
 transcode_path4="${H22_PATH2}v210/NWFA/source"
-dump_to="$TRANSCODE"
+dump_to="$GIT_TRANSCODE"
 log_path="$SCRIPT_LOG"
 python_script="$SCRIPT_FFV1_V210"
 
