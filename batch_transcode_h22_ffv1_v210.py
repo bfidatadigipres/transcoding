@@ -448,7 +448,7 @@ def clean_up(fullpath):
                 try:
                     # Delete FFV1 mkv after successful transcode to V210 mov
                     logger.info("*** DELETION OF MKV FOLLOWING SUCCESSFUL TRANSCODE: %s", fullpath)
-#                    os.remove(fullpath)
+                    os.remove(fullpath)
                 except Exception:
                     logger.warning("Deletion failure: %s", fullpath)
             else:

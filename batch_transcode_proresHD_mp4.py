@@ -19,7 +19,12 @@ ProRes mov mediaconch policy check, and transcode to h.264 mp4:
          and if successful deletes original in Grack_h22. If not retries once.
    If it fails:
      i. Deletes mp4 and leaves ProRes for repeat attempt
-Joanna White / Michael Norman 2021
+
+NOTE:  Needs temporary step that skip rsync and moves to local 'copy'
+       folder. I/O waits prevent script completion/progress
+
+Joanna White / Michael Norman
+2021
 '''
 
 import os
@@ -72,6 +77,13 @@ def set_output_path(file_path, use):
             return os.path.join(DESTINATION + 'Silversalt/' + new_filename)
         elif '/r3store/' in file_path.lower():
             return os.path.join(DESTINATION + 'R3store/' + new_filename)
+
+    elif 'copy' in use:
+        path_split = os.path.split(file_path)
+        path_split_2 = os.path.split(path_split[0])
+        filename, extension = os.path.splitext(path_split[1])
+        new_filename = "copy/" + filename + extension
+        return os.path.join(path_split_2[0], new_filename)
 
     elif 'success' in use:
         path_split = os.path.split(file_path)
@@ -290,10 +302,18 @@ def clean_up(file_path):
             except Exception:
                 logger.warning("clean_up(): Unable to move %s to mp4_completed/ folder: %s", new_file, mp4_complete_path)
             # Move ProRes move to success/ path on Grack_F47
-            logger.info("clean_up(): MP4 creation successful. Moving ProRes to Grack_F47")
-            new_mov_path = set_output_path(file_path, 'success')
-            rsync(file_path, new_mov_path)
-            test = md5_check(file_path, new_mov_path)
+#            logger.info("clean_up(): MP4 creation successful. Moving ProRes to Grack_F47")
+#            new_mov_path = set_output_path(file_path, 'success')
+#            rsync(file_path, new_mov_path)
+#            test = md5_check(file_path, new_mov_path)
+            move_to_copy = set_output_path(file_path, 'copy')
+            logger.info("Moving MOV to copy folder: %s:", move_to_copy)
+            try:
+                shutil.move(file_path, move_to_copy)
+            except Exception:
+                logger.exception("Unable to move %s to %s", file_path, move_to_copy)
+
+            '''
             if 'MATCH' in test:
                 logger.info("ProRes file %s moved successfully and MD5 checksums match", new_mov_path)
                 logger.info("Deleting original file: %s", file_path)
@@ -323,7 +343,7 @@ def clean_up(file_path):
                         shutil.move(file_path, fail_mov_path)
                     except Exception:
                         logger.exception("Failed to move ProRes %s to %s", file_path, fail_mov_path)
-
+            '''
         elif 'FAIL!' in result:
             # Failed. Delete MP4 and leave ProRes to try again
             fail_mp4_path = set_output_path(new_file, 'fail')

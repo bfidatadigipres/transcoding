@@ -238,7 +238,7 @@ def clean_up(fullpath, new_fullpath):
                 try:
                     # Delete V210 MOV after successful encode to ProRes mov
                     logger.info("*** Deletion of V210 following successful transcode: %s", fullpath)
-#                    os.remove(fullpath)
+                    os.remove(fullpath)
                 except Exception:
                     logger.exception("Deletion failure: %s", fullpath)
             else:
