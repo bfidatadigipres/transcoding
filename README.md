@@ -16,7 +16,7 @@ MediaInfo - https://mediaarea.net/mediainfo
 FFmpeg - http://ffmpeg.org/  
 FFprobe - https://ffmpeg.org/ffprobe.html  
 
-To run the concurrent processes the scripts use GNU Parallel which will require installation (with dependencies of it's own that may include the following):
+To run the concurrent processes the scripts use GNU Parallel which will require installation (with dependencies of its own that may include the following):
 
     GNU parallel may also require: sysstat 12.2.0, libsensors 5-6.0, libsensors-config 3.6.0
     available here http://archive.ubuntu.com/ubuntu/pool/main/l/lm-sensors/libsensors-config_3.6.0-2ubuntu1_all.deb
@@ -26,7 +26,7 @@ To run the concurrent processes the scripts use GNU Parallel which will require 
 
 ## Supporting crontab actions
 
-The transcoding scripts are launched via shell scripts, or the Python directly, from a server's /etc/crontab.  
+The transcoding scripts are launched via shell scripts, or the Python directly, from a servers /etc/crontab.  
 Where a script is working on batches using multiple instances running concurrently it's possible to overburden the server and accidentally kill processes midway through. To prevent this the crontab calls the scripts via Linux Flock, /usr/bin/flock shown below. The lock files associated with each script are manually created and put in the /var/run folder. When one is active it blocks any other instances from launching, which allows for multiple crontab entries for a given script, see crontab example below. A script called flock_rebuild.sh (you can see an example of this in the dpx_encoding repository) regularly checks for missing lock files, and where absent recreates them. It is common for the lock files to disappear when a server is rebooted.  
 
 The scripts for FFmpeg transcoding run frequently throughout the day:  
