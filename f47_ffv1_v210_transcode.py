@@ -21,14 +21,10 @@ import logging
 import subprocess
 
 # Global paths from environment vars
-# PATH = os.environ['F47_PATH']
-PATH = '/mnt/isilon/video_operations/automation/FFV1_Matroska_conversion/'
-#MOV_POLICY = os.environ['MOV_POLICY']
-MOV_POLICY = '/home/datadigipres/code/git/transcoding/general_v210_policy.xml'
-# DELIVERY_PATH = os.environ['F47_DEST']
-DELIVERY_PATH = '/mnt/isilon/video_operations/automation/FFV1_Matroska_conversion/success/'
-LOG = '/mnt/isilon/ingest/admin/Logs'
-print(PATH, MOV_POLICY, DELIVERY_PATH, LOG)
+PATH = os.environ['VID_IS']
+MOV_POLICY = os.environ['MOV_POLICY']
+DELIVERY_PATH = os.environ['VID_SUCCESS']
+LOG = os.environ['SCRIPT_LOG']
 
 # Setup logging
 logger = logging.getLogger('f47_ffv1_v210_transcode')
