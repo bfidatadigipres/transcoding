@@ -15,16 +15,20 @@ Joanna White 2020
 '''
 
 import os
-import subprocess
+import time
 import shutil
 import logging
-import time
+import subprocess
 
 # Global paths from environment vars
-PATH = os.environ['F47_PATH']
-MOV_POLICY = os.environ['MOV_POLICY']
-DELIVERY_PATH = os.environ['F47_DEST']
-LOG = os.environ['SCRIPT_LOG']
+# PATH = os.environ['F47_PATH']
+PATH = '/mnt/isilon/video_operations/automation/FFV1_Matroska_conversion/'
+#MOV_POLICY = os.environ['MOV_POLICY']
+MOV_POLICY = '/home/datadigipres/code/git/transcoding/general_v210_policy.xml'
+# DELIVERY_PATH = os.environ['F47_DEST']
+DELIVERY_PATH = '/mnt/isilon/video_operations/automation/FFV1_Matroska_conversion/success/'
+LOG = '/mnt/isilon/ingest/admin/Logs'
+print(PATH, MOV_POLICY, DELIVERY_PATH, LOG)
 
 # Setup logging
 logger = logging.getLogger('f47_ffv1_v210_transcode')
@@ -212,29 +216,28 @@ def conformance_check(file):
 
 def main():
 
-    for root, dirs, files in os.walk(PATH):
-        for file in files:
-            fullpath = os.path.join(root, file)
-            print(fullpath)
-            if os.path.isfile(fullpath):
-                if fullpath.endswith(".mkv"):
-                    ffmpeg_call = []
-                    dar = get_dar(fullpath)
-                    height = get_height(fullpath)
-                    logger.info("Sending FFmpeg_call with %s, %s and %s", fullpath, height, dar)
-                    ffmpeg_call = create_ffmpeg_command(fullpath, height, dar)
-                    ffmpeg_call_neat = (" ".join(ffmpeg_call), "\n")
-                    print("Transcoding with:", " ".join(ffmpeg_call), "\n")
-                    logger.info("FFmpeg call created: %s", ffmpeg_call_neat)
-                    try:
-                        subprocess.call(ffmpeg_call)
-                    except Exception:
-                        logger.critical("FFmpeg command failed: %s", ffmpeg_call)
-                        print("FFmpeg command failed")
-                    time.sleep(15)
-                    clean_up(fullpath)
-                else:
-                    print("{} is not a Matroska file, skipping".format(fullpath))
+    file_list = [x for x in os.listdir(PATH) if os.path.isfile(os.path.join(PATH, x))]
+    for file in file_list:
+        fullpath = os.path.join(root, file)
+        print(fullpath)
+        if fullpath.endswith(".mkv"):
+            ffmpeg_call = []
+            dar = get_dar(fullpath)
+            height = get_height(fullpath)
+            logger.info("Sending FFmpeg_call with %s, %s and %s", fullpath, height, dar)
+            ffmpeg_call = create_ffmpeg_command(fullpath, height, dar)
+            ffmpeg_call_neat = (" ".join(ffmpeg_call), "\n")
+            print("Transcoding with:", " ".join(ffmpeg_call), "\n")
+            logger.info("FFmpeg call created: %s", ffmpeg_call_neat)
+            try:
+                subprocess.call(ffmpeg_call)
+            except Exception:
+                logger.critical("FFmpeg command failed: %s", ffmpeg_call)
+                print("FFmpeg command failed")
+            time.sleep(15)
+            clean_up(fullpath)
+        else:
+            print("{} is not a Matroska file, skipping".format(fullpath))
 
     logger.info("================== END F47 ffv1 to v210 transcode END ==================")
 

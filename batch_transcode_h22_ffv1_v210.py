@@ -25,16 +25,18 @@ Joanna White 2021
 
 import os
 import sys
+import json
 import time
 import shutil
 import logging
 import subprocess
 
 # Global paths from server environmental variables
-MOV_POLICY = os.environ['MOV_POLICY_H22']
-FRAMEMD5_PATH = os.environ['FRAMEMD5_PATH']
-LOG = os.environ['SCRIPT_LOG']
-STORAGE = os.environ['QNAP04_H22']
+MOV_POLICY = os.environ.get('MOV_POLICY_H22')
+FRAMEMD5_PATH = os.environ.get('FRAMEMD5_PATH')
+LOG = os.environ.get('SCRIPT_LOG')
+STORAGE = os.environ.get('QNAP04_H22')
+CONTROL_JSON = os.path.join(LOG, 'downtime_control.json')
 
 # Setup logging
 logger = logging.getLogger('batch_transcode_h22_ffv1_v210')
@@ -45,6 +47,17 @@ logger.addHandler(hdlr)
 logger.setLevel(logging.INFO)
 
 logger.info("================== START Python3 ffv1 to v210 transcode START ==================")
+
+
+def check_control():
+    '''
+    Check control json for downtime requests
+    '''
+    with open(CONTROL_JSON) as control:
+        j = json.load(control)
+        if not j['rna_transcode']:
+            logger.info('Script run prevented by downtime_control.json. Script exiting.')
+            sys.exit('Script run prevented by downtime_control.json. Script exiting.')
 
 
 def get_colour(fullpath):
@@ -250,7 +263,7 @@ def make_framemd5(fullpath):
     output_mov = os.path.join(fullpath_split[0], f"{filename[0]}.mov.framemd5")
 
     framemd5_mkv = [
-        "ffmpeg", "-nostdin",
+        "ffmpeg", "-nostdin", "-y",
         "-i", fullpath,
         "-vf", "lutyuv=y=if(gt(val\,1019)\,1019\,if(lt(val\,4)\,4\,val)):u=if(gt(val\,1019)\,1019\,if(lt(val\,4)\,4\,val)):v=if(gt(val\,1019)\,1019\,if(lt(val\,4)\,4\,val))",
         "-f", "framemd5",
@@ -263,7 +276,7 @@ def make_framemd5(fullpath):
         logger.exception("Framemd5 command failure: %s", fullpath)
 
     framemd5_mov = [
-        "ffmpeg", "-nostdin",
+        "ffmpeg", "-nostdin", "-y",
         "-i", new_filepath,
         "-vf", "lutyuv=y=if(gt(val\,1019)\,1019\,if(lt(val\,4)\,4\,val)):u=if(gt(val\,1019)\,1019\,if(lt(val\,4)\,4\,val)):v=if(gt(val\,1019)\,1019\,if(lt(val\,4)\,4\,val))",
         "-f", "framemd5",
@@ -330,6 +343,7 @@ def main():
         logger.warning("SCRIPT EXITING: Error with shell script input:\n %s", sys.argv)
         sys.exit()
     else:
+        check_control()
         fullpath = sys.argv[1]
         file = os.path.split(fullpath)[1]
         if file.startswith("N_") and '/mkv/' not in fullpath:
@@ -357,24 +371,26 @@ def main():
                 logger_list.append(f"WARNING: FFmpeg command failed: {ffmpeg_call}")
             toc = time.perf_counter()
             encode_time = (toc - tic) // 60
-            logger_list.append(f"*** Encoding time for {file} was {encode_time} minutes")
+            seconds_time = (toc - tic)
+            logger_list.append(f"*** Encoding time for {file} was {encode_time} minutes // or in seconds {seconds_time}")
 
             # Check framemd5's match for MKV and MOV
             tic2 = time.perf_counter()
             framemd5 = make_framemd5(fullpath)
             toc2 = time.perf_counter()
             md5_time = (toc2 - tic2) // 60
-            logger_list.append(f"*** MD5 creation time for FFV1 and MOV: {md5_time} minutes")
+            md5_seconds = (toc2 - tic2)
+            logger_list.append(f"*** MD5 creation time for FFV1 and MOV: {md5_time} minutes or {md5_seconds} seconds")
             md5_mkv = framemd5[0]
             md5_mov = framemd5[1]
             result = diff_check(md5_mkv, md5_mov)
             if 'MATCH' in result:
                 logger_list.append(f"Framemd5 check passed for {md5_mkv} and {md5_mov}")
                 logger_list.append("Copying to top level framemd5 folder (deleting local version)")
-                shutil.copy(md5_mov, FRAMEMD5_PATH)
-                shutil.copy(md5_mkv, FRAMEMD5_PATH)
-                os.remove(md5_mov)
-                os.remove(md5_mkv)
+                md5_mov_fname = os.path.split(md5_mov)[1]
+                md5_mkv_fname = os.path.split(md5_mkv)[1]
+                shutil.move(md5_mov, os.path.join(FRAMEMD5_PATH, md5_mov_fname))
+                shutil.move(md5_mkv, os.path.join(FRAMEMD5_PATH, md5_mkv_fname))
                 # Collate and output all logs at once for concurrent runs
                 for line in logger_list:
                     if 'WARNING' in str(line):
@@ -462,7 +478,7 @@ def clean_up(fullpath):
                 except Exception:
                     logger.warning("Unable to move %s to failures/ folder: %s", new_file, fail_path)
                 try:
-                    logger.info("Deleting %s file as failed mediaconch policy")
+                    logger.info("Deleting %s file as failed mediaconch policy", fail_path)
                     os.remove(fail_path)
                 except Exception:
                     logger.warning("Unable to delete %s", fail_path)

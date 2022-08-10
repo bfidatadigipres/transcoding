@@ -30,6 +30,7 @@ Joanna White 2021
 import os
 import sys
 import time
+import json
 import shutil
 import logging
 import subprocess
@@ -38,6 +39,7 @@ import subprocess
 PATH_POLICY = os.environ['H22_POLICIES']
 PRORES_POLICY = os.path.join(PATH_POLICY, 'h22_video_transcode_policy_ProRes.xml')
 LOG = os.environ['SCRIPT_LOG']
+CONTROL_JSON = os.path.join(LOG, 'downtime_control.json')
 
 # Setup logging
 logger = logging.getLogger('batch_transcode_h22_v210_prores.log')
@@ -48,6 +50,17 @@ logger.addHandler(hdlr)
 logger.setLevel(logging.INFO)
 
 logger.info("================== START Python3 v210 to ProRes transcode START ==================")
+
+
+def check_control():
+    '''
+    Check control json for downtime requests
+    '''
+    with open(CONTROL_JSON) as control:
+        j = json.load(control)
+        if not j['rna_transcode']:
+            logger.info('Script run prevented by downtime_control.json. Script exiting.')
+            sys.exit('Script run prevented by downtime_control.json. Script exiting.')
 
 
 def change_path(fullpath, use):
@@ -181,6 +194,7 @@ def main():
         logger.warning("SCRIPT EXITING: Error with shell script input:\n %s", sys.argv)
         sys.exit()
     else:
+        check_control()
         fullpath = sys.argv[1]
         path_split = os.path.split(fullpath)
         file = path_split[1]
@@ -201,7 +215,8 @@ def main():
                 logger_data.append(f"WARNING: FFmpeg command failed: {ffmpeg_call_neat}\n{err}")
             toc = time.perf_counter()
             encoding_time = (toc - tic) // 60
-            logger_data.append(f"*** Encoding time for {file}: {encoding_time} minutes")
+            seconds_time = (toc - tic)
+            logger_data.append(f"*** Encoding time for {file}: {encoding_time} minutes or as seconds: {seconds_time}")
             logger_data.append("Checking if new Prores file passes Mediaconch policy")
             for line in logger_data:
                 if 'WARNING' in str(line):
