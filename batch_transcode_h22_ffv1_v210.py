@@ -36,6 +36,7 @@ MOV_POLICY = os.environ.get('MOV_POLICY_H22')
 FRAMEMD5_PATH = os.environ.get('FRAMEMD5_PATH')
 LOG = os.environ.get('SCRIPT_LOG')
 STORAGE = os.environ.get('QNAP04_H22')
+H22_PTH = os.environ.get('QNAP02_H22')
 CONTROL_JSON = os.path.join(LOG, 'downtime_control.json')
 
 # Setup logging
@@ -45,8 +46,6 @@ formatter = logging.Formatter('%(asctime)s\t%(levelname)s\t%(message)s')
 hdlr.setFormatter(formatter)
 logger.addHandler(hdlr)
 logger.setLevel(logging.INFO)
-
-logger.info("================== START Python3 ffv1 to v210 transcode START ==================")
 
 
 def check_control():
@@ -142,12 +141,16 @@ def change_path(fullpath, use):
 
     if '/SASE/' in fullpath:
         supply_path = os.path.join(STORAGE, 'hdd/prores/SASE/')
+        h22_path = os.path.join(H22_PTH, 'hdd/prores/SASE/')
     elif '/NEFA/' in fullpath:
         supply_path = os.path.join(STORAGE, 'lto/prores/NEFA/')
+        h22_path = os.path.join(H22_PTH, 'lto/prores/NEFA/')
     elif '/YFA/' in fullpath:
         supply_path = os.path.join(STORAGE, 'lto/prores/YFA/')
+        h22_path = os.path.join(H22_PTH, 'lto/prores/YFA/')
     elif '/NWFA/' in fullpath:
         supply_path = os.path.join(STORAGE, 'lto/v210/NWFA/')
+        h22_path = os.path.join(H22_PTH, 'lto/v210/NWFA/')
 
     if 'transcode' in use:
         return os.path.join(supply_path, 'transcode/', f'{filename}.mov')
@@ -156,9 +159,9 @@ def change_path(fullpath, use):
     elif 'failed' in use:
         return os.path.join(supply_path, 'failures/', f'{filename}.mov')
     elif 'mkv_fail' in use:
-        return os.path.join(supply_path, 'framemd5_fail/', path_split[1])
+        return os.path.join(h22_path, 'framemd5_fail/', path_split[1])
     elif 'log' in use:
-        return os.path.join(supply_path, 'failures/', fail_log)
+        return os.path.join(h22_path, 'failures/', fail_log)
 
 
 def create_ffmpeg_command(fullpath, data=None):
@@ -257,10 +260,10 @@ def make_framemd5(fullpath):
     0-4 and 1019-1023 become lossy failing framemd5 comparison. lutyuv command courtesy Dave Rice.
     '''
     new_filepath = change_path(fullpath, 'transcode')
-    fullpath_split = os.path.split(fullpath)
-    filename = os.path.splitext(fullpath_split[1])
-    output_mkv = os.path.join(fullpath_split[0], f"{filename[0]}.mkv.framemd5")
-    output_mov = os.path.join(fullpath_split[0], f"{filename[0]}.mov.framemd5")
+    path_split = os.path.split(fullpath)
+    filename = os.path.splitext(path_split[1])
+    output_mkv = os.path.join(path_split[0], f"{filename[0]}.mkv.framemd5")
+    output_mov = os.path.join(path_split[0], f"{filename[0]}.mov.framemd5")
 
     framemd5_mkv = [
         "ffmpeg", "-nostdin", "-y",
@@ -295,6 +298,9 @@ def diff_check(md5_mkv, md5_mov):
     '''
     Compare two framemd5s for exact match
     '''
+
+    logger.info("Diff command received: %s and %s paths", md5_mkv, md5_mov)
+
     diff_cmd = [
         'diff', '-s',
         md5_mkv, md5_mov
@@ -302,12 +308,11 @@ def diff_check(md5_mkv, md5_mov):
 
     try:
         success = subprocess.check_output(diff_cmd)
-        success = str(success)
-    except Exception:
+    except Exception as e:
         success = ""
-        logger.warning("Diff check failed for %s and %s", md5_mkv, md5_mov)
+        logger.warning("Diff check failed for %s and %s\n%s", md5_mkv, md5_mov, e)
 
-    if 'are identical' in success:
+    if 'are identical' in str(success):
         return 'MATCH'
     else:
         return 'FAIL'
@@ -324,7 +329,7 @@ def fail_log(fullpath, message):
         with open(fail_log_path, 'x') as log_data:
             log_data.close()
 
-    with open(fail_log_path, 'a') as log_data:
+    with open(fail_log_path, 'a+') as log_data:
         log_data.write(f"================= {fullpath} ================\n")
         log_data.write(message)
         log_data.write("\n")
@@ -343,6 +348,7 @@ def main():
         logger.warning("SCRIPT EXITING: Error with shell script input:\n %s", sys.argv)
         sys.exit()
     else:
+        logger.info("================== START Python3 ffv1 to v210 transcode START ==================")
         check_control()
         fullpath = sys.argv[1]
         file = os.path.split(fullpath)[1]
@@ -406,16 +412,27 @@ def main():
                 logger_list.append(f"--- {mkv_fail_path} ---")
                 fail_log(fullpath, f"{fail_path} being deleted due to Framemd5 mis-match. Failed framemd5 manifests moving to 'framemd5/' appended 'failed_' for review")
                 logger_list.append("FRAMEMD5 FILES DO NOT MATCH. Moving Matroska to framemd5_fail/ folder for review")
+
                 md5_mkv_split = os.path.split(md5_mkv)
                 rename_md5_mkv = os.path.join(FRAMEMD5_PATH, f'failed_{md5_mkv_split[1]}')
                 md5_mov_split = os.path.split(md5_mov)
                 rename_md5_mov = os.path.join(FRAMEMD5_PATH, f'failed_{md5_mov_split[1]}')
-                try:
-                    shutil.move(md5_mov, rename_md5_mov)
-                    shutil.move(md5_mkv, rename_md5_mkv)
-                    logger_list.append("Moving framemd5 manifest to framemd5/ folder renamed 'failed_'")
-                except Exception:
-                    logger_list.append("WARNING: Unable to move framemd5 files to failures/ folder")
+
+                # Move framemd5 files from qnap02 to qnap04 (new block)
+                logger_list.append(f"MOVING: {md5_mov} TO {rename_md5_mov}")
+                shutil.copy(md5_mov, rename_md5_mov)
+                shutil.copy(md5_mkv, rename_md5_mkv)
+                if os.path.exists(rename_md5_mov):
+                    os.remove(md5_mov)
+                    logger_list.append(f"Framemd5 moved to framemd5 folder: {rename_md5_mov}")
+                else:
+                    logger_list.append("WARNING: Unable to copy framemd5 files to failures/ folder")
+                if os.path.exists(rename_md5_mkv):
+                    os.remove(md5_mkv)
+                    logger_list.append(f"Framemd5 moved to framemd5 folder: {rename_md5_mkv}")
+                else:
+                    logger_list.append("WARNING: Unable to copy framemd5 files to failures/ folder")
+
                 try:
                     shutil.move(fullpath, mkv_fail_path)
                     logger_list.append("Moving MKV to framemd5_fail/ folder for review")
@@ -431,6 +448,7 @@ def main():
                     os.remove(fail_path)
                 except Exception:
                     logger_list.append(f"WARNING: Unable to delete {fail_path}")
+
                 # Collate and output all logs at once for concurrent runs
                 for line in logger_list:
                     if 'WARNING' in str(line):
