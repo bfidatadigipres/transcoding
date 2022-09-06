@@ -193,40 +193,43 @@ def main():
     if len(sys.argv) < 2:
         logger.warning("SCRIPT EXITING: Error with shell script input:\n %s", sys.argv)
         sys.exit()
-    else:
-        check_control()
-        fullpath = sys.argv[1]
-        path_split = os.path.split(fullpath)
-        file = path_split[1]
-        output_fullpath = change_path(fullpath, 'transcode')
-        if file.startswith("N_") and '/prores/' in fullpath:
-            logger_data = []
-            # Execute FFmpeg subprocess call
-            logger_data.append(f"******** {fullpath} being processed ********")
-            ffmpeg_call = create_ffmpeg_command(fullpath)
-            ffmpeg_call_neat = (" ".join(ffmpeg_call), "\n")
-            logger_data.append(f"FFmpeg call: {ffmpeg_call_neat}")
-            # tic/toc record encoding time
-            tic = time.perf_counter()
-            try:
-                subprocess.call(ffmpeg_call)
-                logger_data.append("Subprocess call for FFmpeg command successful")
-            except Exception as err:
-                logger_data.append(f"WARNING: FFmpeg command failed: {ffmpeg_call_neat}\n{err}")
-            toc = time.perf_counter()
-            encoding_time = (toc - tic) // 60
-            seconds_time = (toc - tic)
-            logger_data.append(f"*** Encoding time for {file}: {encoding_time} minutes or as seconds: {seconds_time}")
-            logger_data.append("Checking if new Prores file passes Mediaconch policy")
-            for line in logger_data:
-                if 'WARNING' in str(line):
-                    logger.warning("%s", line)
-                else:
-                    logger.info("%s", line)
-            clean_up(fullpath, output_fullpath)
 
-        else:
-            logger.info("SKIPPING: %s is not a '/prores/' path ** NOT FOR TRANSCODING **", fullpath)
+    check_control()
+    fullpath = sys.argv[1]
+    path_split = os.path.split(fullpath)
+    file = path_split[1]
+    output_fullpath = change_path(fullpath, 'transcode')
+    if file.startswith("N_") and '/prores/' in fullpath:
+        logger_data = []
+
+        # Execute FFmpeg subprocess call
+        logger_data.append(f"******** {fullpath} being processed ********")
+        ffmpeg_call = create_ffmpeg_command(fullpath)
+        ffmpeg_call_neat = (" ".join(ffmpeg_call), "\n")
+        logger_data.append(f"FFmpeg call: {ffmpeg_call_neat}")
+
+        # tic/toc record encoding time
+        tic = time.perf_counter()
+        try:
+            subprocess.call(ffmpeg_call)
+            logger_data.append("Subprocess call for FFmpeg command successful")
+        except Exception as err:
+            logger_data.append(f"WARNING: FFmpeg command failed: {ffmpeg_call_neat}\n{err}")
+        toc = time.perf_counter()
+        encoding_time = (toc - tic) // 60
+        seconds_time = (toc - tic)
+        logger_data.append(f"*** Encoding time for {file}: {encoding_time} minutes or as seconds: {seconds_time}")
+        logger_data.append("Checking if new Prores file passes Mediaconch policy")
+
+        for line in logger_data:
+            if 'WARNING' in str(line):
+                logger.warning("%s", line)
+            else:
+                logger.info("%s", line)
+        clean_up(fullpath, output_fullpath)
+
+    else:
+        logger.info("SKIPPING: %s is not a '/prores/' path ** NOT FOR TRANSCODING **", fullpath)
 
     logger.info("================== END v210 to ProRes transcode END ==================")
 
