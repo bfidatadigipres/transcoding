@@ -43,20 +43,42 @@ def get_dar(fullpath):
     '''
     mediainfo_cmd = [
         'mediainfo',
+        '-f',
         '--Language=raw',
-        '--Output="Video;%DisplayAspectRatio/String%"',
+        '--Output=Video;%DisplayAspectRatio/String%',
         fullpath
     ]
 
     dar_setting = subprocess.check_output(mediainfo_cmd)
-    dar_setting = str(dar_setting)
+    dar_setting = dar_setting.decode('utf-8')
 
     if '4:3' in dar_setting:
         return '4:3'
     elif '16:9' in dar_setting:
         return '16:9'
+    elif '5:4' in dar_setting:
+        return '5:4'
     else:
-        return "No DAR"
+        return 'No DAR'
+
+
+def get_framerate(fullpath):
+    '''
+    Retrieve framerate metadata
+    '''
+    mediainfo_cmd = [
+        'mediainfo',
+        '-f',
+        '--Language=raw',
+        '--Output=General;%FrameRate/String%',
+        fullpath
+    ]
+
+    framerate = subprocess.check_output(mediainfo_cmd)
+    framerate = framerate.decode('utf-8')
+    if '.' in framerate:
+        return framerate.split('.')[0]
+    return framerate
 
 
 def get_height(fullpath):
@@ -65,20 +87,21 @@ def get_height(fullpath):
     '''
     mediainfo_cmd = [
         'mediainfo',
-        '--Output="Video;%Height%"',
+        '--Output=Video;%Height%',
         fullpath
     ]
 
     height = subprocess.check_output(mediainfo_cmd)
-    height = str(height)
+    height = height.decode('utf-8')
+    height = height.strip('\n')
 
-    if '576 pixel' in height:
+    if '576' == str(height):
         return '576'
-    elif '608 pixel' in height:
+    elif '608' == height:
         return '608'
-    elif '720 pixel' in height:
+    elif '720' == height:
         return '720'
-    elif '1 080 pixel' or '1080 pixel' in height:
+    elif '1 080' == height or '1080' == height:
         return '1080'
     else:
         return "There is no height data for this item"
@@ -96,7 +119,7 @@ def set_move_path(fullpath):
     return os.path.join(DELIVERY_PATH, "{}_v210.mov".format(filename))
 
 
-def create_ffmpeg_command(fullpath, height, dar):
+def create_ffmpeg_command(fullpath, height, dar, framerate):
 
     output_fullpath = set_output_path(fullpath)
 
@@ -129,15 +152,20 @@ def create_ffmpeg_command(fullpath, height, dar):
 
     video_settings = [
         "-c:v", "v210",
+        "-framerate", framerate,
         "-metadata:s:v:0", "'encoder=Uncompressed 10-bit 4:2:2'"
     ]
 
     audio_settings = [
-        "-c:a", "pcm_s16le"
+        "-c:a", "copy"
     ]
 
     interlace_crop = [
         "-vf", "setfield=tff,crop=720:576:0:32,setdar=4/3"
+    ]
+
+    interlace_nocrop = [
+        "-vf", "setfield=tff"
     ]
 
     interlace_setdar_4x3 = [
@@ -161,9 +189,9 @@ def create_ffmpeg_command(fullpath, height, dar):
         return ffmpeg_program_call + input_video_file + map_command + colour_sd_pal + \
                video_settings + interlace_setdar_4x3 + audio_settings + mov_settings
     elif height == '608':
-        logger.info("%s file will be encoded using SD 4:3 settings with crop to height 576", fullpath)
+        logger.info("%s file will be encoded with interlacing only. Crop requested to be removed", fullpath)
         return ffmpeg_program_call + input_video_file + map_command + colour_sd_pal + \
-               video_settings + interlace_crop + audio_settings + mov_settings
+               video_settings + interlace_nocrop + audio_settings + mov_settings
     elif height == '576' and dar == '16:9':
         logger.info("%s file will be encoded using SD 16:9 settings", fullpath)
         return ffmpeg_program_call + input_video_file + map_command + colour_sd_pal + \
@@ -194,15 +222,15 @@ def conformance_check(file):
 
     try:
         success = subprocess.check_output(mediaconch_cmd)
-        success = str(success)
+        success = success.decode('utf-8')
     except:
         success = ""
         logger.warning("Mediaconch policy retrieval failure for %s", file)
 
-    if 'pass!' in success:
+    if success.startswith('pass!'):
         logger.info("PASS: %s has passed the mediaconch policy", file)
         return "PASS!"
-    elif 'fail!' in success:
+    elif success.startswith('fail!'):
         return "FAIL! This policy has failed {}".format(success)
         logger.warning("FAIL! The policy has failed for %s:\n %s", file, success)
     else:
@@ -214,14 +242,18 @@ def main():
 
     file_list = [x for x in os.listdir(PATH) if os.path.isfile(os.path.join(PATH, x))]
     for file in file_list:
-        fullpath = os.path.join(root, file)
+        fullpath = os.path.join(PATH, file)
         print(fullpath)
         if fullpath.endswith(".mkv"):
             ffmpeg_call = []
             dar = get_dar(fullpath)
+            print(f"** DAR: {dar}")
             height = get_height(fullpath)
-            logger.info("Sending FFmpeg_call with %s, %s and %s", fullpath, height, dar)
-            ffmpeg_call = create_ffmpeg_command(fullpath, height, dar)
+            print(f"** Height: {height}")
+            framerate = get_framerate(fullpath)
+            print(f"** FPS: {framerate}")
+            logger.info("Sending FFmpeg_call with %s, %s, %s and %s", fullpath, height, dar, framerate)
+            ffmpeg_call = create_ffmpeg_command(fullpath, height, dar, framerate)
             ffmpeg_call_neat = (" ".join(ffmpeg_call), "\n")
             print("Transcoding with:", " ".join(ffmpeg_call), "\n")
             logger.info("FFmpeg call created: %s", ffmpeg_call_neat)
@@ -232,6 +264,7 @@ def main():
                 print("FFmpeg command failed")
             time.sleep(15)
             clean_up(fullpath)
+
         else:
             print("{} is not a Matroska file, skipping".format(fullpath))
 
