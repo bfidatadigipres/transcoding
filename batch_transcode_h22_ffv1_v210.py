@@ -18,11 +18,13 @@ Script that takes FFv1 Matroska files and encodes to v210 mov:
      i. File is not mediaconch checked but moved to failures/ and failure log updated
      ii. V210 mov is deleted and FFV1 matroska is left in place for another transcoding attempt
      iii. MKV is moved to framemd5_fail folder
+6. Output MD5 checksum for V210 to new log when FrameMD5 files match
 
 Python 3.7+
 Joanna White 2021
 '''
 
+# Global imports
 import os
 import sys
 import json
@@ -31,12 +33,16 @@ import shutil
 import logging
 import subprocess
 
+# Local import
+from checksum_maker import make_checksum
+
 # Global paths from server environmental variables
 MOV_POLICY = os.environ.get('MOV_POLICY_H22')
-FRAMEMD5_PATH = os.environ.get('FRAMEMD5_PATH')
+FRAMEMD5_PATH = os.environ.get('FRAMEMD5_PATH_Q10')
 LOG = os.environ.get('SCRIPT_LOG')
-STORAGE = os.environ.get('QNAP04_H22')
-H22_PTH = os.environ.get('QNAP02_H22')
+STORAGE = os.environ.get('H22LOAN4')
+H22_PTH = os.environ.get('H22_PATH_Q10')
+CHECKSUM_LOG = os.path.join(STORAGE, 'checksum_manifest.log')
 CONTROL_JSON = os.path.join(LOG, 'downtime_control.json')
 
 # Setup logging
@@ -136,8 +142,8 @@ def change_path(fullpath, use):
     for one of four RNA paths
     '''
     path_split = os.path.split(fullpath)
-    filename, extension = os.path.splitext(path_split[1])
-    fail_log = "h22_mov_failure.log"
+    filename = os.path.splitext(path_split[1])[0]
+    failure_log = "h22_mov_failure.log"
 
     if '/SASE/' in fullpath:
         supply_path = os.path.join(STORAGE, 'hdd/prores/SASE/')
@@ -150,7 +156,7 @@ def change_path(fullpath, use):
         h22_path = os.path.join(H22_PTH, 'lto/prores/YFA/')
     elif '/NWFA/' in fullpath:
         supply_path = os.path.join(STORAGE, 'lto/v210/NWFA/')
-        h22_path = os.path.join(H22_PTH, 'lto/v210/NWFA/')
+        h22_path = os.path.join(H22_PTH, 'qnap/v210/NWFA/')
 
     if 'transcode' in use:
         return os.path.join(supply_path, 'transcode/', f'{filename}.mov')
@@ -161,7 +167,7 @@ def change_path(fullpath, use):
     elif 'mkv_fail' in use:
         return os.path.join(h22_path, 'framemd5_fail/', path_split[1])
     elif 'log' in use:
-        return os.path.join(h22_path, 'failures/', fail_log)
+        return os.path.join(h22_path, 'failures/', failure_log)
 
 
 def create_ffmpeg_command(fullpath, data=None):
@@ -302,7 +308,7 @@ def diff_check(md5_mkv, md5_mov):
     logger.info("Diff command received: %s and %s paths", md5_mkv, md5_mov)
 
     diff_cmd = [
-        'diff', '-s',
+        'sudo', 'diff', '-s',
         md5_mkv, md5_mov
     ]
 
@@ -333,6 +339,20 @@ def fail_log(fullpath, message):
         log_data.write(f"================= {fullpath} ================\n")
         log_data.write(message)
         log_data.write("\n")
+        log_data.close()
+
+
+def checksum_log(fpath, checksum):
+    '''
+    Creates fail log if not in existence
+    Appends new message to log
+    '''
+    if not os.path.isfile(CHECKSUM_LOG):
+        with open(CHECKSUM_LOG, 'x') as log_data:
+            log_data.close()
+
+    with open(CHECKSUM_LOG, 'a+') as log_data:
+        log_data.write(f"{fpath}, {checksum}\n")
         log_data.close()
 
 
@@ -397,6 +417,13 @@ def main():
                 md5_mkv_fname = os.path.split(md5_mkv)[1]
                 shutil.move(md5_mov, os.path.join(FRAMEMD5_PATH, md5_mov_fname))
                 shutil.move(md5_mkv, os.path.join(FRAMEMD5_PATH, md5_mkv_fname))
+                # New block to create Checksum log for all V210 files in STORAGE path
+                logger_list.append("Creating whole file checksum for new MOV file.")
+                new_mov_path = change_path(fullpath, 'transcode')
+                checksum = make_checksum(new_mov_path)
+                if checksum:
+                    checksum_log(new_mov_path, checksum)
+                    logger_list.append(f"Writing file checksum {checksum} to log")
                 # Collate and output all logs at once for concurrent runs
                 for line in logger_list:
                     if 'WARNING' in str(line):
