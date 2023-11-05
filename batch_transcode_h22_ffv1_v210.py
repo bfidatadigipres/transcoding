@@ -369,120 +369,124 @@ def main():
     check_control()
     fullpath = sys.argv[1]
     file = os.path.split(fullpath)[1]
-    if file.startswith("N_") and '/mkv/' not in fullpath:
-        # Build and execute FFmpeg subprocess call
-        logger_list.append(f"******** {fullpath} being processed ********")
-        ffmpeg_data = []
-        # Extract MKV metadata to list and pass to subprocess blocks
-        setfield = get_interl(fullpath)
-        colour_data = get_colour(fullpath)
-        color_primaries = colour_data[0]
-        color_trc = 'bt709'
-        colormatrix = colour_data[1]
-        codec = 'v210'
-        codec_desc = 'Uncompressed 10-bit 4:2:2'
-        ffmpeg_data = [codec, codec_desc, colormatrix, color_trc, color_primaries, setfield]
+    if not file.startswith("N_"):
+        logger.warning("SKIPPING: Filename does not start with 'N_' %s", fullpath)
+        sys.exit()
+    if '/mkv/' in fullpath:
+        logger.warning("SKIPPING: Found '/mkv/' in full path ** NOT FOR TRANSCODING **\n%s", fullpath)
+        sys.exit()
 
-        ffmpeg_call = create_ffmpeg_command(fullpath, ffmpeg_data)
-        ffmpeg_call_neat = (" ".join(ffmpeg_call), "\n")
-        logger_list.append(f"FFmpeg call: {ffmpeg_call_neat}")
+    # Build and execute FFmpeg subprocess call
+    logger_list.append(f"******** {fullpath} being processed ********")
+    ffmpeg_data = []
+    # Extract MKV metadata to list and pass to subprocess blocks
+    setfield = get_interl(fullpath)
+    colour_data = get_colour(fullpath)
+    color_primaries = colour_data[0]
+    color_trc = 'bt709'
+    colormatrix = colour_data[1]
+    codec = 'v210'
+    codec_desc = 'Uncompressed 10-bit 4:2:2'
+    ffmpeg_data = [codec, codec_desc, colormatrix, color_trc, color_primaries, setfield]
 
-        tic = time.perf_counter()
-        try:
-            subprocess.call(ffmpeg_call)
-        except Exception as err:
-            logger_list.append(f"WARNING: FFmpeg command failed: {ffmpeg_call}\n{err}")
-        toc = time.perf_counter()
-        encode_time = (toc - tic) // 60
-        seconds_time = (toc - tic)
-        logger_list.append(f"*** Encoding time for {file} was {encode_time} minutes // or in seconds {seconds_time}")
+    ffmpeg_call = create_ffmpeg_command(fullpath, ffmpeg_data)
+    ffmpeg_call_neat = (" ".join(ffmpeg_call), "\n")
+    logger_list.append(f"FFmpeg call: {ffmpeg_call_neat}")
 
-        # Check framemd5's match for MKV and MOV
-        tic2 = time.perf_counter()
-        framemd5 = make_framemd5(fullpath)
-        toc2 = time.perf_counter()
-        md5_time = (toc2 - tic2) // 60
-        md5_seconds = (toc2 - tic2)
-        logger_list.append(f"*** MD5 creation time for FFV1 and MOV: {md5_time} minutes or {md5_seconds} seconds")
-        md5_mkv = framemd5[0]
-        md5_mov = framemd5[1]
-        result = diff_check(md5_mkv, md5_mov)
-        if 'MATCH' in result:
-            logger_list.append(f"Framemd5 check passed for {md5_mkv} and {md5_mov}")
-            logger_list.append("Copying to top level framemd5 folder (deleting local version)")
-            md5_mov_fname = os.path.split(md5_mov)[1]
-            md5_mkv_fname = os.path.split(md5_mkv)[1]
-            shutil.move(md5_mov, os.path.join(FRAMEMD5_PATH, md5_mov_fname))
-            shutil.move(md5_mkv, os.path.join(FRAMEMD5_PATH, md5_mkv_fname))
-            # New block to create Checksum log for all V210 files in STORAGE path
-            logger_list.append("Creating whole file checksum for new MOV file.")
-            new_mov_path = change_path(fullpath, 'transcode')
-            checksum = make_checksum(new_mov_path)
-            if checksum:
-                checksum_log(new_mov_path, checksum)
-                logger_list.append(f"Writing file checksum {checksum} to log")
-            # Collate and output all logs at once for concurrent runs
-            for line in logger_list:
-                if 'WARNING' in str(line):
-                    logger.warning("%s", line)
-                else:
-                    logger.info("%s", line)
-            clean_up(fullpath)
+    tic = time.perf_counter()
+    try:
+        subprocess.call(ffmpeg_call)
+    except Exception as err:
+        logger_list.append(f"WARNING: FFmpeg command failed: {ffmpeg_call}\n{err}")
+    toc = time.perf_counter()
+    encode_time = (toc - tic) // 60
+    seconds_time = (toc - tic)
+    logger_list.append(f"*** Encoding time for {file} was {encode_time} minutes // or in seconds {seconds_time}")
 
-        else:
-            fail_path = change_path(fullpath, 'failed')
-            new_file = change_path(fullpath, 'transcode')
-            mkv_fail_path = change_path(fullpath, 'mkv_fail')
-            logger_list.append(f"--- {mkv_fail_path} ---")
-            fail_log(fullpath, f"{fail_path} being deleted due to Framemd5 mis-match. Failed framemd5 manifests moving to 'framemd5/' appended 'failed_' for review")
-            logger_list.append("FRAMEMD5 FILES DO NOT MATCH. Moving Matroska to framemd5_fail/ folder for review")
-
-            md5_mkv_split = os.path.split(md5_mkv)
-            rename_md5_mkv = os.path.join(FRAMEMD5_PATH, f'failed_{md5_mkv_split[1]}')
-            md5_mov_split = os.path.split(md5_mov)
-            rename_md5_mov = os.path.join(FRAMEMD5_PATH, f'failed_{md5_mov_split[1]}')
-
-            # Move framemd5 files from qnap02 to qnap04 (new block)
-            logger_list.append(f"MOVING: {md5_mov} TO {rename_md5_mov}")
-            shutil.copy(md5_mov, rename_md5_mov)
-            shutil.copy(md5_mkv, rename_md5_mkv)
-            if os.path.exists(rename_md5_mov):
-                os.remove(md5_mov)
-                logger_list.append(f"Framemd5 moved to framemd5 folder: {rename_md5_mov}")
+    # Check framemd5's match for MKV and MOV
+    tic2 = time.perf_counter()
+    framemd5 = make_framemd5(fullpath)
+    toc2 = time.perf_counter()
+    md5_time = (toc2 - tic2) // 60
+    md5_seconds = (toc2 - tic2)
+    logger_list.append(f"*** MD5 creation time for FFV1 and MOV: {md5_time} minutes or {md5_seconds} seconds")
+    md5_mkv = framemd5[0]
+    md5_mov = framemd5[1]
+    result = diff_check(md5_mkv, md5_mov)
+    if 'MATCH' in result:
+        logger_list.append(f"Framemd5 check passed for {md5_mkv} and {md5_mov}")
+        logger_list.append("Copying to top level framemd5 folder (deleting local version)")
+        md5_mov_fname = os.path.split(md5_mov)[1]
+        md5_mkv_fname = os.path.split(md5_mkv)[1]
+        shutil.move(md5_mov, os.path.join(FRAMEMD5_PATH, md5_mov_fname))
+        shutil.move(md5_mkv, os.path.join(FRAMEMD5_PATH, md5_mkv_fname))
+        # New block to create Checksum log for all V210 files in STORAGE path
+        logger_list.append("Creating whole file checksum for new MOV file.")
+        new_mov_path = change_path(fullpath, 'transcode')
+        checksum = make_checksum(new_mov_path)
+        if checksum:
+            checksum_log(new_mov_path, checksum)
+            logger_list.append(f"Writing file checksum {checksum} to log")
+        # Collate and output all logs at once for concurrent runs
+        for line in logger_list:
+            if 'WARNING' in str(line):
+                logger.warning("%s", line)
             else:
-                logger_list.append("WARNING: Unable to copy framemd5 files to failures/ folder")
-            if os.path.exists(rename_md5_mkv):
-                os.remove(md5_mkv)
-                logger_list.append(f"Framemd5 moved to framemd5 folder: {rename_md5_mkv}")
-            else:
-                logger_list.append("WARNING: Unable to copy framemd5 files to failures/ folder")
+                logger.info("%s", line)
+        clean_up(fullpath)
 
-            try:
-                shutil.move(fullpath, mkv_fail_path)
-                logger_list.append("Moving MKV to framemd5_fail/ folder for review")
-            except Exception as err:
-                logger_list.append(f"WARNING: Failed to move MKV to framemd5_fail/ folder: {mkv_fail_path}\n{err}")
-            try:
-                shutil.move(new_file, fail_path)
-                logger_list.append(f"Moving {new_file} to failures/ folder: {fail_path} before deletion")
-            except Exception as err:
-                logger_list.append(f"WARNING: Unable to move {new_file} to failures/ folder: {fail_path}\n{err}")
-            try:
-                logger_list.append(f"Deleting {fail_path} file")
-                os.remove(fail_path)
-            except Exception as err:
-                logger_list.append(f"WARNING: Unable to delete {fail_path}\n{err}")
-
-            # Collate and output all logs at once for concurrent runs
-            for line in logger_list:
-                if 'WARNING' in str(line):
-                    logger.warning("%s", line)
-                else:
-                    logger.info("%s", line)
     else:
-        logger.info("SKIPPING: %s is an '/mkv/' path ** NOT FOR TRANSCODING **", fullpath)
+        fail_path = change_path(fullpath, 'failed')
+        new_file = change_path(fullpath, 'transcode')
+        mkv_fail_path = change_path(fullpath, 'mkv_fail')
+        logger_list.append(f"--- {mkv_fail_path} ---")
+        fail_log(fullpath, f"{fail_path} being deleted due to Framemd5 mis-match. Failed framemd5 manifests moving to 'framemd5/' appended 'failed_' for review")
+        logger_list.append("FRAMEMD5 FILES DO NOT MATCH. Moving Matroska to framemd5_fail/ folder for review")
 
-logger.info("================== END ffv1 to v210 transcode END ==================")
+        md5_mkv_split = os.path.split(md5_mkv)
+        rename_md5_mkv = os.path.join(FRAMEMD5_PATH, f'failed_{md5_mkv_split[1]}')
+        md5_mov_split = os.path.split(md5_mov)
+        rename_md5_mov = os.path.join(FRAMEMD5_PATH, f'failed_{md5_mov_split[1]}')
+
+        # Move framemd5 files from qnap02 to qnap04 (new block)
+        logger_list.append(f"MOVING: {md5_mov} TO {rename_md5_mov}")
+        shutil.copy(md5_mov, rename_md5_mov)
+        shutil.copy(md5_mkv, rename_md5_mkv)
+        if os.path.exists(rename_md5_mov):
+            os.remove(md5_mov)
+            logger_list.append(f"Framemd5 moved to framemd5 folder: {rename_md5_mov}")
+        else:
+            logger_list.append("WARNING: Unable to copy framemd5 files to failures/ folder")
+        if os.path.exists(rename_md5_mkv):
+            os.remove(md5_mkv)
+            logger_list.append(f"Framemd5 moved to framemd5 folder: {rename_md5_mkv}")
+        else:
+            logger_list.append("WARNING: Unable to copy framemd5 files to failures/ folder")
+
+        try:
+            shutil.move(fullpath, mkv_fail_path)
+            logger_list.append("Moving MKV to framemd5_fail/ folder for review")
+        except Exception as err:
+            logger_list.append(f"WARNING: Failed to move MKV to framemd5_fail/ folder: {mkv_fail_path}\n{err}")
+        try:
+            shutil.move(new_file, fail_path)
+            logger_list.append(f"Moving {new_file} to failures/ folder: {fail_path} before deletion")
+        except Exception as err:
+            logger_list.append(f"WARNING: Unable to move {new_file} to failures/ folder: {fail_path}\n{err}")
+        try:
+            logger_list.append(f"Deleting {fail_path} file")
+            os.remove(fail_path)
+        except Exception as err:
+            logger_list.append(f"WARNING: Unable to delete {fail_path}\n{err}")
+
+        # Collate and output all logs at once for concurrent runs
+        for line in logger_list:
+            if 'WARNING' in str(line):
+                logger.warning("%s", line)
+            else:
+                logger.info("%s", line)
+
+    logger.info("================== END ffv1 to v210 transcode END ==================")
 
 
 def clean_up(fullpath):
