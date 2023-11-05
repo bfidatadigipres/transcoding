@@ -250,10 +250,10 @@ def conformance_check(filepath):
     elif 'fail!' in success:
         logger.warning("FAIL! The policy has failed for %s:\n %s", filepath, success)
         return f"FAIL! {success}"
-    else:
-        return f"FAIL! {success}"
-        logger.warning("FAIL! The policy has failed for %s:\n%s", filepath, success)
 
+    logger.warning("FAIL! The policy has failed for %s:\n%s", filepath, success)
+    return f"FAIL! {success}"
+    
 
 def make_framemd5(fullpath):
     '''
