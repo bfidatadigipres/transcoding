@@ -237,9 +237,9 @@ def conformance_check(filepath):
     try:
         success = subprocess.check_output(mediaconch_cmd)
         success = success.decode('utf-8')
-    except Exception:
+    except Exception as err:
         success = ""
-        logger.warning("Mediaconch policy retrieval failure for %s", filepath)
+        logger.warning("Mediaconch policy retrieval failure for %s\n%s", filepath, err)
 
     if 'N/A!' in success:
         logger.info("***** FAIL! Problem with the MediaConch policy suspected. Check <%s> manually *****\n%s", filepath, success)
@@ -278,8 +278,8 @@ def make_framemd5(fullpath):
 
     try:
         subprocess.call(framemd5_mkv)
-    except Exception:
-        logger.exception("Framemd5 command failure: %s", fullpath)
+    except Exception as err:
+        logger.exception("Framemd5 command failure: %s\n%s", fullpath, err)
 
     framemd5_mov = [
         "ffmpeg", "-nostdin", "-y",
@@ -291,8 +291,8 @@ def make_framemd5(fullpath):
 
     try:
         subprocess.call(framemd5_mov)
-    except Exception:
-        logger.exception("Framemd5 command failure: %s", new_filepath)
+    except Exception as err:
+        logger.exception("Framemd5 command failure: %s\n%s", new_filepath, err)
 
     return (output_mkv, output_mov)
 
@@ -390,8 +390,8 @@ def main():
         tic = time.perf_counter()
         try:
             subprocess.call(ffmpeg_call)
-        except Exception:
-            logger_list.append(f"WARNING: FFmpeg command failed: {ffmpeg_call}")
+        except Exception as err:
+            logger_list.append(f"WARNING: FFmpeg command failed: {ffmpeg_call}\n{err}")
         toc = time.perf_counter()
         encode_time = (toc - tic) // 60
         seconds_time = (toc - tic)
@@ -465,13 +465,13 @@ def main():
             try:
                 shutil.move(new_file, fail_path)
                 logger_list.append(f"Moving {new_file} to failures/ folder: {fail_path} before deletion")
-            except Exception:
-                logger_list.append(f"WARNING: Unable to move {new_file} to failures/ folder: {fail_path}")
+            except Exception as err:
+                logger_list.append(f"WARNING: Unable to move {new_file} to failures/ folder: {fail_path}\n{err}")
             try:
                 logger_list.append(f"Deleting {fail_path} file")
                 os.remove(fail_path)
-            except Exception:
-                logger_list.append(f"WARNING: Unable to delete {fail_path}")
+            except Exception as err:
+                logger_list.append(f"WARNING: Unable to delete {fail_path}\n{err}")
 
             # Collate and output all logs at once for concurrent runs
             for line in logger_list:
@@ -502,14 +502,14 @@ def clean_up(fullpath):
         try:
             new_file_path = change_path(fullpath, 'move')
             shutil.move(new_file, new_file_path)
-        except Exception:
-            logger.warning("Unable to move %s to success folder: %s", new_file, new_file_path)
+        except Exception as err:
+            logger.warning("Unable to move %s to success folder: %s\n%s", new_file, new_file_path, err)
         try:
             # Delete FFV1 mkv after successful transcode to V210 mov
             logger.info("*** DELETION OF MKV FOLLOWING SUCCESSFUL TRANSCODE: %s", fullpath)
             os.remove(fullpath)
-        except Exception:
-            logger.warning("Deletion failure: %s", fullpath)
+        except Exception as err:
+            logger.warning("Deletion failure: %s\n%s", fullpath, err)
     else:
         logger.warning("FAIL: %s failed the policy checker. Leaving Matroska for second encoding attempt", new_file)
         fail_log(fullpath, result)
@@ -518,13 +518,13 @@ def clean_up(fullpath):
             # Delete MOV from failures/ path
             shutil.move(new_file, fail_path)
             logger.info("Moving %s to failures/ folder: %s", new_file, fail_path)
-        except Exception:
-            logger.warning("Unable to move %s to failures/ folder: %s", new_file, fail_path)
+        except Exception as err:
+            logger.warning("Unable to move %s to failures/ folder: %s\n%s", new_file, fail_path, err)
         try:
             logger.info("Deleting %s file as failed mediaconch policy", fail_path)
             os.remove(fail_path)
-        except Exception:
-            logger.warning("Unable to delete %s", fail_path)
+        except Exception as err:
+            logger.warning("Unable to delete %s\n%s", fail_path, err)
 
 
 if __name__ == "__main__":
