@@ -71,23 +71,21 @@ def get_colour(fullpath):
     '''
     mediainfo_cmd1 = [
         'mediainfo',
-        '--Language=raw',
         '--Output=Video;%colour_primaries%',
         fullpath
     ]
 
     colour_prim = subprocess.check_output(mediainfo_cmd1)
-    colour_prim = str(colour_prim)
+    colour_prim = colour_prim.decode('utf-8')
 
     mediainfo_cmd3 = [
         'mediainfo',
-        '--Language=raw',
         '--Output=Video;%matrix_coefficients%',
         fullpath
     ]
 
     col_matrix = subprocess.check_output(mediainfo_cmd3)
-    col_matrix = str(col_matrix)
+    col_matrix = col_matrix.decode('utf-8')
 
     if 'BT.709' in colour_prim:
         color_primaries = 'bt709'
@@ -116,13 +114,12 @@ def get_interl(fullpath):
     '''
     mediainfo_cmd = [
         'mediainfo',
-        '--Language=raw',
         '--Output=Video;%ScanOrder%',
         fullpath
     ]
 
     interl_setting = subprocess.check_output(mediainfo_cmd)
-    interl_setting = str(interl_setting)
+    interl_setting = interl_setting.decode('utf-8')
 
     if 'TFF' in interl_setting:
         setfield = 'tff'
@@ -239,7 +236,7 @@ def conformance_check(filepath):
 
     try:
         success = subprocess.check_output(mediaconch_cmd)
-        success = str(success)
+        success = success.decode('utf-8')
     except Exception:
         success = ""
         logger.warning("Mediaconch policy retrieval failure for %s", filepath)
@@ -528,7 +525,6 @@ def clean_up(fullpath):
             os.remove(fail_path)
         except Exception:
             logger.warning("Unable to delete %s", fail_path)
-
 
 
 if __name__ == "__main__":
