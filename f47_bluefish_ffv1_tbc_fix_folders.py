@@ -34,9 +34,7 @@ import subprocess
 
 # Global paths from environment vars
 SOURCE = os.environ['BLUEFISH_MKV']
-COMPLETED = os.path.join(SOURCE, 'completed')
 MKV_POLICY = os.environ['MKV_POLICY']
-DEST = os.environ['MKV_PROCESSING']
 TBC_LOG = os.environ['TBC_LOG']
 LOG = os.environ['SCRIPT_LOG']
 FRAMEMD5_PATH = os.environ['BLUEFISH_TEMP']
@@ -44,7 +42,7 @@ CONTROL_JSON = os.path.join(LOG, 'downtime_control.json')
 
 # Setup logging
 logger = logging.getLogger('QNAP_08_bluefish_ffv1_tbc_fix.py')
-hdlr = logging.FileHandler(os.path.join(LOG, 'QNAP_08_bluefish_ffv1_tbc_fix.log'))
+hdlr = logging.FileHandler(os.path.join(LOG, 'QNAP_08_bluefish_ffv1_tbc_fix_folders.log'))
 formatter = logging.Formatter('%(asctime)s\t%(levelname)s\t%(message)s')
 hdlr.setFormatter(formatter)
 logger.addHandler(hdlr)
@@ -340,6 +338,9 @@ def diff_check(md5_mkv1, md5_mkv2):
     for line in mkv2[8:]:
         mkv2_manifest.append(line.split(',')[-1])
 
+    print(mkv1_manifest)
+    print(mkv2_manifest)
+
     if len(mkv1_manifest) == len(mkv2_manifest):
         length_check = len(mkv1_manifest) - 3
     else:
@@ -348,11 +349,9 @@ def diff_check(md5_mkv1, md5_mkv2):
         else:
             length_check = len(mkv2_manifest) - 3
 
-    difference = set(mkv1_manifest[:length_check]).difference(set(mkv2_manifest[:length_check]))
-    if not difference:
+    if mkv1_manifest[:length_check] == mkv2_manifest[:length_check]:
         return 'MATCH'
     else:
-        print(f"Files do not match - mismatches:\n{difference}")
         return 'FAIL'
 
 
@@ -388,10 +387,11 @@ def main():
         sys.exit(f'Error with shell script input {sys.argv}')
     else:
         logger.info("================== START BlueFish MKV TBC correction START ==================")
-        # check_control()
+        check_control()
         fullpath = sys.argv[1]
-        file = os.path.split(fullpath)[1]
-        outpath = os.path.join(DEST, file)
+        root, file = os.path.split(fullpath)
+        outpath = os.path.join(root, 'transcoded', file)
+        completed = os.path.join(root, 'completed', file)
         if os.path.exists(fullpath):
             # Build and execute FFmpeg subprocess call
             logger_list.append(f"******** {fullpath} being processed ********")
@@ -449,18 +449,18 @@ def main():
                     logger_list.append(f"PASS! {outpath} passed the policy checker and it's Matroska can be deleted")
                     try:
                         # Delete FFV1 mkv after successful transcode to MKV
-                        shutil.move(fullpath, COMPLETED)
+                        shutil.move(fullpath, completed)
                         fname = os.path.split(fullpath)[-1]
-                        completed_pth = os.path.join(COMPLETED, fname)
-                        logger_list.append("*** FILE BEING MOVED TO COMPLETED PATH FOR AUTOMATED DELETION: %s", fname)
+                        completed_pth = os.path.join(completed, fname)
+                        logger_list.append("*** FILE BEING MOVED TO COMPLETED PATH: %s", fname)
                     except Exception:
                         logger_list.append(f"WARNING: Deletion failure: {fullpath}")
                 else:
                     logger_list.append(f"WARNING: {outpath} failed the policy checker. Leaving Matroska for second encoding attempt")
-                    fail_log(fullpath, f"Failed Mediaconch conformance check:\n{result}")
+                    fail_log(fullpath, f"Failed Mediaconch policy check:\n{result}")
 
                     try:
-                        logger_list.append(f"PAUSED -- Deleting {outpath} file as failed mediaconch policy")
+                        logger_list.append(f"Deleting {outpath} file as failed mediaconch policy")
                         os.remove(outpath)
                     except Exception:
                         logger_list.append(f"WARNING: Unable to delete {outpath}")
@@ -474,7 +474,7 @@ def main():
 
             else:
                 logger_list.append(f"--- {outpath} ---")
-                fail_log(fullpath, "Failed framemd5 manifests, appending 'failed_' for review.")
+                fail_log(fullpath, "Failed FRAMEMD5 checks, appending 'failed_' for review.")
                 fail_log(fullpath, f"Deleting: {outpath}")
                 logger_list.append("FRAMEMD5 FILES DO NOT MATCH")
 
@@ -488,7 +488,7 @@ def main():
                 os.rename(md5_mkv2, rename_md5_mkv2)
                 os.rename(md5_mkv1, rename_md5_mkv1)
                 try:
-                    logger_list.append(f"Deleting {outpath} file as failed transcoding checks")
+                    logger_list.append(f"Deleting {outpath} file as failed mediaconch policy")
                     os.remove(outpath)
                 except Exception:
                     logger_list.append(f"WARNING: Unable to delete {outpath}")

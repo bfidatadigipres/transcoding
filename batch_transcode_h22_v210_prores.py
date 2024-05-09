@@ -115,9 +115,9 @@ def create_ffmpeg_command(fullpath):
         "-flags", "+ildct",
         "-movflags", "faststart"
     ]
-
+    # "copy" temp replaced with "pcm_s16le"
     audio_settings = [
-        "-c:a", "copy"
+        "-c:a", "pcm_s24le"
     ]
 
     mov_settings = [

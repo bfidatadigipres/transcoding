@@ -6,9 +6,11 @@
 Script that takes FFv1 Matroska files and encodes to v210 mov:
 1. Shell script searches in paths for files that end in '.mkv' and passes on one at a time to Python
 2. Receives single path as sys.argv[1], checks metadata of file acquiring field order, colour data etc
-3. Populates FFmpeg subprocess command based on format decisiong from retrieved data
-4. Transcodes new file into QNAP_04 path named as {filename}.mov
-5. Runs framemd5 checks against the FFV1 matroska and V210 mov file, checks if they're identical
+3. Looks for source_delay, and if found populated FFmpeg itsoffset command and makes new source file
+   to replace previous. Previous placed into 'itsoffset_original' folder for safe keeping.
+4. Populates FFmpeg subprocess command based on format decisiong from retrieved data
+5. Transcodes new file into QNAP_04 path named as {filename}.mov
+6. Runs framemd5 checks against the FFV1 matroska and V210 mov file, checks if they're identical
    If identical:
      i. verifies V210 mov passes mediaconch policy
      ii. If yes, moves identical V210 mov to success/ folder
@@ -33,10 +35,11 @@ import subprocess
 
 # Global paths from server environmental variables
 MOV_POLICY = os.environ.get('MOV_POLICY_H22')
-FRAMEMD5_PATH = os.environ.get('FRAMEMD5_PATH')
+SOURCE_POLICY = os.environ.get('SOURCE_DELAY_XML')
+FRAMEMD5_PATH = os.environ.get('FRAMEMD5_QNAP10')
 LOG = os.environ.get('SCRIPT_LOG')
 STORAGE = os.environ.get('QNAP04_H22')
-H22_PTH = os.environ.get('QNAP02_H22')
+H22_PTH = os.environ.get('QNAP10_H22')
 CONTROL_JSON = os.path.join(LOG, 'downtime_control.json')
 
 # Setup logging
@@ -71,7 +74,17 @@ def get_colour(fullpath):
     ]
 
     colour_prim = subprocess.check_output(mediainfo_cmd1)
-    colour_prim = str(colour_prim)
+    colour_prim = colour_prim.decode('utf-8')
+
+    mediainfo_cmd2 = [
+        'mediainfo',
+        '--Language=raw',
+        '--Output=Video;%transfer_characteristics%',
+        fullpath
+    ]
+
+    col_trc = subprocess.check_output(mediainfo_cmd2)
+    col_trc = col_trc.decode('utf-8')
 
     mediainfo_cmd3 = [
         'mediainfo',
@@ -81,7 +94,7 @@ def get_colour(fullpath):
     ]
 
     col_matrix = subprocess.check_output(mediainfo_cmd3)
-    col_matrix = str(col_matrix)
+    col_matrix = col_matrix.decode('utf-8')
 
     if 'BT.709' in colour_prim:
         color_primaries = 'bt709'
@@ -92,6 +105,15 @@ def get_colour(fullpath):
     else:
         color_primaries = ''
 
+    if 'BT.709' in col_trc:
+        color_trace = 'bt709'
+    elif 'BT.601' in col_trc:
+        color_trace = 'smpte170m'
+    elif 'BT.470' in col_trc:
+        color_trace = 'smpte170m' # bt470bg failing inexplicably
+    else:
+        color_trace = ''
+
     if 'BT.709' in col_matrix:
         colormatrix = 'bt709'
     elif 'BT.601' in col_matrix:
@@ -101,7 +123,7 @@ def get_colour(fullpath):
     else:
         colormatrix = ''
 
-    return (color_primaries, colormatrix)
+    return (color_primaries, color_trace, colormatrix)
 
 
 def get_interl(fullpath):
@@ -136,7 +158,7 @@ def change_path(fullpath, use):
     for one of four RNA paths
     '''
     path_split = os.path.split(fullpath)
-    filename, extension = os.path.splitext(path_split[1])
+    filename, ext = os.path.splitext(path_split[1])
     fail_log = "h22_mov_failure.log"
 
     if '/SASE/' in fullpath:
@@ -160,8 +182,15 @@ def change_path(fullpath, use):
         return os.path.join(supply_path, 'failures/', f'{filename}.mov')
     elif 'mkv_fail' in use:
         return os.path.join(h22_path, 'framemd5_fail/', path_split[1])
+    elif 'conch_fail' in use:
+        return os.path.join(h22_path, 'mediaconch_fail/', path_split[1])
     elif 'log' in use:
         return os.path.join(h22_path, 'failures/', fail_log)
+    elif 'itsoffset' in use:
+        return os.path.join(path_split[0], 'itsoffset/', f'{filename}{ext}')
+    elif 'its_original' in use:
+        path_source = os.path.split(path_split[0])[0]
+        return os.path.join(path_source, 'itsoffset_originals', f'{filename}{ext}')
 
 
 def create_ffmpeg_command(fullpath, data=None):
@@ -169,7 +198,7 @@ def create_ffmpeg_command(fullpath, data=None):
     Subprocess command build, with variations
     added based on metadata extraction
     '''
-
+    file = os.path.split(fullpath)[1]
     output_fullpath = change_path(fullpath, 'transcode')
 
     if data is None:
@@ -213,7 +242,8 @@ def create_ffmpeg_command(fullpath, data=None):
 
     mov_settings = [
         "-f", "mov",
-        "-n", output_fullpath
+        "-n", output_fullpath,
+        "-report"
     ]
 
     return ffmpeg_program_call + input_video_file + map_command + video_settings + colour_build + \
@@ -241,15 +271,15 @@ def conformance_check(filepath):
     if 'N/A!' in success:
         logger.info("***** FAIL! Problem with the MediaConch policy suspected. Check <%s> manually *****\n%s", filepath, success)
         return f"FAIL! {success}"
-    elif 'pass!' in success:
+    if 'pass!' in success:
         logger.info("PASS: %s has passed the mediaconch policy", filepath)
         return "PASS!"
-    elif 'fail!' in success:
+    if 'fail!' in success:
         logger.warning("FAIL! The policy has failed for %s:\n %s", filepath, success)
         return f"FAIL! {success}"
-    else:
-        return f"FAIL! {success}"
-        logger.warning("FAIL! The policy has failed for %s:\n%s", filepath, success)
+
+    logger.warning("FAIL! The policy has failed for %s:\n%s", filepath, success)
+    return f"FAIL! {success}"
 
 
 def make_framemd5(fullpath):
@@ -265,11 +295,12 @@ def make_framemd5(fullpath):
     output_mkv = os.path.join(path_split[0], f"{filename[0]}.mkv.framemd5")
     output_mov = os.path.join(path_split[0], f"{filename[0]}.mov.framemd5")
 
+    # "-an", can be added added after "framemd5", for video only framemd5 comparisons
     framemd5_mkv = [
         "ffmpeg", "-nostdin", "-y",
         "-i", fullpath,
         "-vf", "lutyuv=y=if(gt(val\,1019)\,1019\,if(lt(val\,4)\,4\,val)):u=if(gt(val\,1019)\,1019\,if(lt(val\,4)\,4\,val)):v=if(gt(val\,1019)\,1019\,if(lt(val\,4)\,4\,val))",
-        "-f", "framemd5",
+        "-f", "framemd5", "-an",
         output_mkv
     ]
 
@@ -278,11 +309,12 @@ def make_framemd5(fullpath):
     except Exception:
         logger.exception("Framemd5 command failure: %s", fullpath)
 
+    # "-an", can be added after "framemd5", for video only framemd5 comparisons
     framemd5_mov = [
         "ffmpeg", "-nostdin", "-y",
         "-i", new_filepath,
         "-vf", "lutyuv=y=if(gt(val\,1019)\,1019\,if(lt(val\,4)\,4\,val)):u=if(gt(val\,1019)\,1019\,if(lt(val\,4)\,4\,val)):v=if(gt(val\,1019)\,1019\,if(lt(val\,4)\,4\,val))",
-        "-f", "framemd5",
+        "-f", "framemd5", "-an",
         output_mov
     ]
 
@@ -318,6 +350,106 @@ def diff_check(md5_mkv, md5_mov):
         return 'FAIL'
 
 
+def check_source_delay(fullpath):
+    '''
+    Check against source delay mediaconch
+    policy, if fail, needs itsoffset action
+    '''
+    cmd = [
+        'mediaconch', '-p',
+        SOURCE_POLICY,
+        fullpath
+    ]
+
+    try:
+        success = subprocess.check_output(cmd)
+        success = success.decode('utf-8')
+        logger.info("*** Itsoffset Mediaconch result: %s", success)
+    except Exception:
+        success = ""
+        logger.warning("Mediaconch source delay policy retrieval failure for %s", fullpath)
+
+    if 'N/A!' in success:
+        logger.info("***** FAIL! Problem with the MediaConch policy suspected. Check <%s> manually *****\n%s", fullpath, success)
+        return f"FAIL! {success}"
+    elif 'pass!' in success:
+        logger.info("PASS: %s has passed the mediaconch policy", fullpath)
+        return "PASS!"
+    elif 'fail!' in success:
+        logger.warning("FAIL! The policy has failed for %s:\n %s", fullpath, success)
+        return f"FAIL! {success}"
+    else:
+        return f"FAIL! {success}"
+        logger.warning("FAIL! The policy has failed for %s:\n%s", fullpath, success)
+
+
+def get_source_delay(fullpath):
+    '''
+    For files found with source delay
+    extract value in ms
+    '''
+    cmd = [
+        'mediainfo', '--Language=raw',
+        '-f', '--Output=Audio;%Video_Delay%',
+        fullpath
+    ]
+
+    source_delay = subprocess.check_output(cmd)
+    source_delay = source_delay.decode('utf-8')
+
+    if '-' in str(source_delay):
+        source_del = source_delay.lstrip('-').rstrip('\n').split('-')
+        if len(source_del) == 1:
+            logger.info("Source delay values retrieved: %s", source_del)
+            return f"-{source_del}"
+        if len(source_del) > 1:
+            logger.info("Source delay values more than two, returning first: %s", source_del)
+            return f"-{source_del[0]}"
+    elif source_delay.rstrip('\n') == '0':
+        return None
+    else:
+        source_delay = source_delay.rstrip('\n')
+        return f"{source_delay}"
+
+
+def run_ffmpeg_itsoffset(fullpath, itsoffset):
+    '''
+    Using extracted source delay
+    run itsoffset corrective ffmpeg pass
+    '''
+
+    output_fullpath = change_path(fullpath, 'itsoffset')
+
+    # Build subprocess call from data list
+    ffmpeg = [
+        "ffmpeg"
+    ]
+
+    input_path = [
+        "-i", fullpath
+    ]
+
+    its_offset = [
+        "-itsoffset", f"{itsoffset}",
+    ]
+
+    mappings = [
+        "-map", "1:v",
+        "-map", "0:a"
+    ]
+
+    video_settings = [
+        "-c", "copy"
+    ]
+
+    output = [
+        output_fullpath
+    ]
+
+    return ffmpeg + input_path + its_offset + input_path + mappings + video_settings + output
+
+
+
 def fail_log(fullpath, message):
     '''
     Creates fail log if not in existence
@@ -351,23 +483,68 @@ def main():
         logger.info("================== START Python3 ffv1 to v210 transcode START ==================")
         check_control()
         fullpath = sys.argv[1]
+        if not os.path.exists(fullpath):
+            logger.info("Fullpath does not exist. Exiting: %s", fullpath)
         file = os.path.split(fullpath)[1]
         if file.startswith("N_") and '/mkv/' not in fullpath:
             # Build and execute FFmpeg subprocess call
             logger_list.append(f"******** {fullpath} being processed ********")
             ffmpeg_data = []
+
+            # Check for source delay issue, if present correct and replace MKV master
+            itsoffset = get_source_delay(fullpath)
+            if itsoffset:
+                print(f"File found to have source delay in audio stream: {itsoffset}")
+                logger_list.append(f"MKV file failed Source Delay check. Offset: {itsoffset}")
+                logger_list.append(f"Running FFmpeg itsoffset command with delay extraction: -{itsoffset}")
+                ffmpeg_call_itsoffset = run_ffmpeg_itsoffset(fullpath, itsoffset)
+                ffmpeg_call_itsoffset_neat = (" ".join(ffmpeg_call_itsoffset), "\n")
+                print(ffmpeg_call_itsoffset_neat)
+                logger_list.append(f"FFmpeg call: {ffmpeg_call_itsoffset_neat}")
+
+                tic = time.perf_counter()
+                try:
+                    status = subprocess.call(ffmpeg_call_itsoffset)
+                    print(status)
+                except Exception:
+                    logger_list.append(f"WARNING: FFmpeg command failed: {ffmpeg_call_itsoffset}")
+                    for line in logger_list:
+                        if 'WARNING' in str(line):
+                            logger.warning("%s", line)
+                        else:
+                            logger.info("%s", line)
+                    sys.exit('Itsoffset command failed')
+
+                toc = time.perf_counter()
+                encode_time = (toc - tic) // 60
+                seconds_time = (toc - tic)
+                logger_list.append(f"*** Itsoffset encoding time for {file} was {encode_time} minutes // or in seconds {seconds_time}")
+
+                fullpath_itsoffset = change_path(fullpath, 'itsoffset')
+                if os.path.exists(fullpath_itsoffset):
+                    logger_list.append("Itsoffset correction complete. Replacing fullpath file with itsoffset file")
+                    itsoffset_original = change_path(fullpath, 'its_original')
+                    try:
+                        shutil.move(fullpath, itsoffset_original)
+                        shutil.move(fullpath_itsoffset, fullpath)
+                        logger_list.append(f"Itsoffset corrected file moved into fullpath: {fullpath}")
+                    except Exception as err:
+                        logger_list.append("WARNING: Unable to move itsoffset file into fullpath")
+                        print(err)
+
             # Extract MKV metadata to list and pass to subprocess blocks
             setfield = get_interl(fullpath)
             colour_data = get_colour(fullpath)
             color_primaries = colour_data[0]
-            color_trc = 'bt709'
-            colormatrix = colour_data[1]
+            color_trc = colour_data[1]
+            colormatrix = colour_data[2]
             codec = 'v210'
             codec_desc = 'Uncompressed 10-bit 4:2:2'
             ffmpeg_data = [codec, codec_desc, colormatrix, color_trc, color_primaries, setfield]
-
+            print(f"Setfield {setfield} Colour data {colour_data} Colour primaries {color_primaries} Colour trace {color_trc} Colour Matrix {colormatrix}") 
             ffmpeg_call = create_ffmpeg_command(fullpath, ffmpeg_data)
             ffmpeg_call_neat = (" ".join(ffmpeg_call), "\n")
+            print(ffmpeg_call_neat)
             logger_list.append(f"FFmpeg call: {ffmpeg_call_neat}")
 
             tic = time.perf_counter()
@@ -500,6 +677,13 @@ def clean_up(fullpath):
                     os.remove(fail_path)
                 except Exception:
                     logger.warning("Unable to delete %s", fail_path)
+                # Move MKV to mediaconch_fail/ path
+                mkv_conch_fail = change_path(fullpath, 'conch_fail')
+                try:
+                    shutil.move(fullpath, mkv_conch_fail)
+                    logger.info("Moving MKV to mediaconch_fail/ folder for review")
+                except Exception as err:
+                    logger.warning("WARNING: Failed to move MKV to mediaconch_fail/ folder: %s\n%s", mkv_conch_fail, err)
         else:
             logger.info("Skipping %s, as this file is not ended .mov", new_file)
     else:
