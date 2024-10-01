@@ -23,7 +23,6 @@ ProRes mov mediaconch policy check, and transcode to h.264 mp4:
 NOTE:  Needs temporary step that skip rsync and moves to local 'copy'
        folder. I/O waits prevent script completion/progress
 
-Joanna White / Michael Norman
 2021
 '''
 

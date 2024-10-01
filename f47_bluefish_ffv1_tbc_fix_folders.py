@@ -19,7 +19,6 @@ Script that takes BlueFish MKV tbc 1/1000 and encodes to MKV tbc 1/25:
      ii. Source file moved to 'problem' subfolder for human intervention
 
 Python 3.7+
-Joanna White
 2022
 '''
 

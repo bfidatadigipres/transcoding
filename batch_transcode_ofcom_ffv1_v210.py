@@ -20,7 +20,6 @@ Script that takes FFv1 Matroska files and encodes to v210 mov:
      iii. MKV is moved to framemd5_fail folder
 
 Python 3.7+
-Joanna White
 2021
 '''
 
