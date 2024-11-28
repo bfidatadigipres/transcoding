@@ -387,7 +387,7 @@ def main():
         sys.exit(f'Error with shell script input {sys.argv}')
     else:
         logger.info("================== START BlueFish MKV TBC correction START ==================")
-        # check_control()
+        check_control()
         fullpath = sys.argv[1]
         file = os.path.split(fullpath)[1]
         outpath = os.path.join(DEST, file)
