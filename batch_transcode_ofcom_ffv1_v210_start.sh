@@ -12,6 +12,18 @@ dump_to="$GIT_TRANSCODE"
 log_path="${SCRIPT_LOG}batch_transcode_ofcom_ffv1_v210.log"
 python_script="$SCRIPT_FFV1_V210_OFCOM"
 
+function control {
+    boole=$(cat "${CONTROL_JSON}" | grep "power_off_all" | awk -F': ' '{print $2}')
+    if [ "$boole" = false, ] ; then
+      echo "Control json requests script exit immediately" >> "${LOG}"
+      echo 'Control json requests script exit immediately'
+      exit 0
+    fi
+}
+
+# Control check inserted into code
+control
+
 # replace list to ensure clean data
 rm "${dump_to}batch_transcode_ofcom_ffv1_v210_dump_text.txt"
 touch "${dump_to}batch_transcode_ofcom_ffv1_v210_dump_text.txt"

@@ -14,6 +14,19 @@ dump_to="$GIT_TRANSCODE"
 log_path="$SCRIPT_LOG"
 script_path="$SCRIPT_V210_PRORES"
 
+
+function control {
+    boole=$(cat "${CONTROL_JSON}" | grep "power_off_all" | awk -F': ' '{print $2}')
+    if [ "$boole" = false, ] ; then
+      echo "Control json requests script exit immediately" >> "${LOG}"
+      echo 'Control json requests script exit immediately'
+      exit 0
+    fi
+}
+
+# Control check inserted into code
+control
+
 # replace list to ensure clean data
 rm "${dump_to}batch_transcode_h22_v210_prores_dump_text.txt"
 touch "${dump_to}batch_transcode_h22_v210_prores_dump_text.txt"
