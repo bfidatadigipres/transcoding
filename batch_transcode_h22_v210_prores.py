@@ -24,7 +24,7 @@ files where found. If this is the case then additional mediainfo metadata enquir
 a customised command is provided.
 
 Python 3.7+
-Joanna White 2021
+2021
 '''
 
 import os

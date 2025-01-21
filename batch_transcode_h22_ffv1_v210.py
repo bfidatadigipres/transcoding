@@ -21,7 +21,7 @@ Script that takes FFv1 Matroska files and encodes to v210 mov:
 6. Output MD5 checksum for V210 to new log when FrameMD5 files match
 
 Python 3.7+
-Joanna White 2021
+2021
 '''
 
 # Global imports

@@ -5,7 +5,6 @@ following MKV 'BlueFish' fix
 '''
 
 import os
-import sys
 
 TRANSCODE_PTH = os.path.join(os.environ['QNAP_VID'], '/bluefish_january_review/transcoded/')
 MOVES = os.path.join(os.environ['QNAP_VID'], '/bluefish_january_review/moves.log')
