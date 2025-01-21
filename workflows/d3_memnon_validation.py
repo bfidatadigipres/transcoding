@@ -58,10 +58,11 @@ def main():
     for mkv in mkv_list:
         if not utils.check_control('power_off_all'):
             LOGGER.info('Script run prevented by downtime_control.json. Script exiting.')
-            sys.exit('Script run prevented by downtime_control.json. Script exiting.')        
- 
+            sys.exit('Script run prevented by downtime_control.json. Script exiting.')
+
         fpath = os.path.join(ARRIVALS, mkv)
         LOGGER.info("New file to process: %s", fpath)
+
         # Get file MD5
         LOGGER.info("Generating local MD5 and comparing to XML supplied checksum")
         local_hash = utils.create_md5_65536(fpath)
@@ -72,8 +73,8 @@ def main():
             # shutil.move(fpath, FAILURES)
             error_log(mkv, f"{mkv} file had no supplier XML.")
             error_log(mkv, f"File MD5: {local_hash.lower()}")
-            error_log(mkv, f"XML supplied MD5: Not found") 
-            continue           
+            error_log(mkv, f"XML supplied MD5: Not found")
+            continue
         if local_hash.lower() != xml_hash.lower():
             LOGGER.warning("Moving MKV %s to failures path. Checksums do not match:\n%s\n%s", mkv, hash, xml_hash)
             # shutil.move(fpath, FAILURES)
@@ -93,7 +94,7 @@ def main():
             for mis in mismatches:
                 error_log(mkv, f"CRC mismatch: {mis}")
             # Move to failures
-            # shutil.move(fpath, FAILURES)            
+            # shutil.move(fpath, FAILURES)
             continue
         LOGGER.info("MKV %s passed Slice CRC checks", mkv)
 
@@ -133,7 +134,7 @@ def get_xml_hash(fpath, fname):
         _data = data.read()
     if not _data:
         return None
-    
+
     xml_data = xmltodict.parse(_data)
     print(xml_data)
     try:
@@ -167,9 +168,10 @@ def scan_ffv1_codec(fpath):
     '''
     Run FFmpeg report on fpath
     Return any responses for errors
+    (turned off -report, to avoid generating log)
     '''
     cmd = [
-        'ffmpeg', '-report',
+        'ffmpeg',
         '-i', fpath,
         '-f', 'null', '-'
     ]
