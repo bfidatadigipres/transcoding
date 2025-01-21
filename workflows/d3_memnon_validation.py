@@ -61,7 +61,9 @@ def main():
             sys.exit('Script run prevented by downtime_control.json. Script exiting.')        
  
         fpath = os.path.join(ARRIVALS, mkv)
+        LOGGER.info("New file to process: %s", fpath)
         # Get file MD5
+        LOGGER.info("Generating local MD5 and comparing to XML supplied checksum")
         local_hash = utils.create_md5_65536(fpath)
         xml_hash = get_xml_hash(ARRIVALS, mkv.split('.')[0])
         if local_hash.lower() != xml_hash.lower():
