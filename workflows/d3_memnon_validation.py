@@ -14,8 +14,7 @@ Memnon workflow for Video Ops D3 FFV1 MKV returns
 All files should be PAL 608 height, though a 608 mediaconch failure may
 need handling with a second MediaConch check implementing.
 
-NOTE: Waiting on XML sample from Memnon
-2024
+2025
 '''
 
 # Global packages
@@ -33,8 +32,8 @@ import utils
 
 # Vars
 LOG_PATH = os.environ['LOG_PATH']
-ARRIVALS = os.environ['MEMNON_ARRIVALS']
-DEPARTURES = os.environ['MEMNON_PROCESSING']
+ARRIVALS = os.path.join(os.environ['QNAP_08'], 'Memnon_arrivals')
+DEPARTURES = os.path.join(os.environ['MEMNON_PROCESSING'], 'memnon_processing')
 FAILURES = os.path.join(ARRIVALS, 'failures')
 VALIDATE608 = os.path.join(os.environ['MEDIACONCH'], 'videoops_mediaconch_policy_mkv_608.xml')
 VALIDATE576 = os.path.join(os.environ['MEDIACONCH'], 'videoops_mediaconch_policy_mkv.xml')
