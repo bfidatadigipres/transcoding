@@ -13,6 +13,9 @@ Memnon workflow for Video Ops D3 FFV1 MKV returns
 
 All files should be PAL 608 height, though a 608 mediaconch failure may
 need handling with a second MediaConch check implementing.
+
+NOTE: Waiting on XML sample from Memnon
+2024
 '''
 
 # Global packages
@@ -60,16 +63,16 @@ def main():
  
         fpath = os.path.join(ARRIVALS, mkv)
         # Get file MD5
-        hash = utils.create_md5_65536(fpath)
+        local_hash = utils.create_md5_65536(fpath)
         xml_hash = get_xml_hash(ARRIVALS, mkv.split('.')[0])
-        if hash.lower() != xml_hash.lower():
+        if local_hash.lower() != xml_hash.lower():
             LOGGER.warning("Moving MKV %s to failures path. Checksums do not match:\n%s\n%s", mkv, hash, xml_hash)
-            shutil.move(fpath, FAILURES)
+            # shutil.move(fpath, FAILURES)
             error_log(mkv, f"{mkv} file failed MD5 Checksum tests:")
-            error_log(mkv, f"File MD5: {hash.lower()}")
+            error_log(mkv, f"File MD5: {local_hash.lower()}")
             error_log(mkv, f"XML supplied MD5: {xml_hash.lower()}")
             continue
-        LOGGER.info("MKV %s passed MD5 checksum comparison:\n%s\n%s", mkv, hash.lower(), xml_hash.lower())
+        LOGGER.info("MKV %s passed MD5 checksum comparison:\n%s\n%s", mkv, local_hash.lower(), xml_hash.lower())
 
         # Run FFV1 report and see if CRC match
         ffmpeg_report = scan_ffv1_codec(fpath)
@@ -80,7 +83,7 @@ def main():
             for mis in mismatches:
                 error_log(mkv, f"CRC mismatch: {mis}")
             # Move to failures
-            shutil.move(fpath, FAILURES)            
+            # shutil.move(fpath, FAILURES)            
             continue
         LOGGER.info("MKV %s passed Slice CRC checks", mkv)
 
@@ -92,14 +95,14 @@ def main():
             if not confirm576:
                 LOGGER.warning("MKV %s failed 576 policy:", mkv, confirm576)
                 LOGGER.warning("Moving MKV %s to failures path.", mkv)
-                shutil.move(fpath, FAILURES)
+                # shutil.move(fpath, FAILURES)
                 error_log(mkv, f"Mediaconch failure for 608 policy:\n{confirm608}")
                 error_log(mkv, f"Mediaconch failure for 608 policy:\n{confirm576}")
                 continue
         LOGGER.info("MKV %s passed Mediaconch checks", mkv)
 
         LOGGER.info("Moving MKV %s into Memnon splitting path: %s", mkv, DEPARTURES)
-        shutil.move(fpath, DEPARTURES)
+        # shutil.move(fpath, DEPARTURES)
 
     LOGGER.info("---------- D3 MEMNON VALIDATION END --------------------------------")
 
@@ -109,6 +112,8 @@ def get_xml_hash(fpath, fname):
     Split filepath, and retrieve XML hash
     data from file
     '''
+    checksum = check_type = ''
+
     xml_path = os.path.join(fpath, f"{fname}.xml")
     if not os.path.exists(xml_path):
         return None
@@ -120,21 +125,31 @@ def get_xml_hash(fpath, fname):
     xml_data = xmltodict.parse(_data)
     try:
         get_files = xml_data['Root']['Carrier']['Parts']['Part']['Files']['File']
-    except KeyError, IndexError, TypeError as err:
+    except (KeyError, IndexError, TypeError) as err:
         print(err)
         return None
 
-    for file in get_files:
-        if f"{fname}.mkv" in str(file):
-            if file['CheckSum'] is None:
-                return None
-            else:
-                checksum = file['Checksum']['#text']
-                type = file['Checksum Type']
-    if str(type) == 'MD5':
-        return checksum
+    if isinstance(get_files, list):
+        for file_dict in get_files:
+            if f"{fname}.mkv" in file_dict['FileName']:
+                checksum = file_dict.get('CheckSum').get('#text')
+                if len(checksum) != 32:
+                    return None
+                else:
+                    checksum = file_dict.get('CheckSum').get('#text')
+                    check_type = file_dict.get('CheckSum').get('@Type')
     else:
-        return None
+        if f"{fname}.mkv" == get_files.get('FileName'):
+            try:
+                checksum = get_files.get('CheckSum').get('#text')
+                check_type = get_files.get('CheckSum').get('@Type')
+            except Exception as err:
+                print(err)
+            if len(checksum) > 0:
+                return 
+
+    if str(check_type) == 'MD5':
+        return checksum
 
 
 def scan_ffv1_codec(fpath):
@@ -187,4 +202,3 @@ def error_log(fname, message):
 
 if __name__ == '__main__':
     main()
-
