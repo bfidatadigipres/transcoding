@@ -72,7 +72,8 @@ def main():
             # shutil.move(fpath, FAILURES)
             error_log(mkv, f"{mkv} file had no supplier XML.")
             error_log(mkv, f"File MD5: {local_hash.lower()}")
-            error_log(mkv, f"XML supplied MD5: Not found")            
+            error_log(mkv, f"XML supplied MD5: Not found") 
+            continue           
         if local_hash.lower() != xml_hash.lower():
             LOGGER.warning("Moving MKV %s to failures path. Checksums do not match:\n%s\n%s", mkv, hash, xml_hash)
             # shutil.move(fpath, FAILURES)
@@ -83,6 +84,7 @@ def main():
         LOGGER.info("MKV %s passed MD5 checksum comparison:\n%s\n%s", mkv, local_hash.lower(), xml_hash.lower())
 
         # Run FFV1 report and see if CRC match
+        LOGGER.info("Start FFmpeg report for FFV1 CRC checksum health")
         ffmpeg_report = scan_ffv1_codec(fpath)
         if 'slice CRC mismatch' in str(ffmpeg_report):
             LOGGER.warning("Moving MKV %s to failures path. CRC checksum mismatch in MKV file. See local error log for timestamps", mkv)
@@ -96,9 +98,11 @@ def main():
         LOGGER.info("MKV %s passed Slice CRC checks", mkv)
 
         # Mediaconch checking
+        LOGGER.info("Comparing file to 608 OFCOM MediaConch Policy")
         confirm608 = utils.get_mediaconch(fpath, VALIDATE608)
         if not confirm608:
             LOGGER.warning("MKV %s failed 608 policy: \n%s", mkv, confirm608)
+            LOGGER.info("Comparing file to 576 OFCOM MediaConch Policy")
             confirm576 = utils.get_mediaconch(fpath, VALIDATE576)
             if not confirm576:
                 LOGGER.warning("MKV %s failed 576 policy:", mkv, confirm576)
