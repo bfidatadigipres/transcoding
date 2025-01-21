@@ -124,15 +124,17 @@ def get_xml_hash(fpath, fname):
         return None
     
     xml_data = xmltodict.parse(_data)
+    print(xml_data)
     try:
         get_files = xml_data['Root']['Carrier']['Parts']['Part']['Files']['File']
+        print(get_files)
     except (KeyError, IndexError, TypeError) as err:
         print(err)
         return None
 
     if isinstance(get_files, list):
         for file_dict in get_files:
-            if f"{fname}.mkv" in file_dict['FileName']:
+            if f"{fname}.mkv" in file_dict.get('FileName'):
                 checksum = file_dict.get('CheckSum').get('#text')
                 if len(checksum) != 32:
                     return None
@@ -140,15 +142,12 @@ def get_xml_hash(fpath, fname):
                     checksum = file_dict.get('CheckSum').get('#text')
                     check_type = file_dict.get('CheckSum').get('@Type')
     else:
-        if f"{fname}.mkv" == get_files.get('FileName'):
+        if f"{fname}.mkv" in str(get_files):
             try:
                 checksum = get_files.get('CheckSum').get('#text')
                 check_type = get_files.get('CheckSum').get('@Type')
             except Exception as err:
                 print(err)
-            if len(checksum) > 0:
-                return 
-
     if str(check_type) == 'MD5':
         return checksum
 
