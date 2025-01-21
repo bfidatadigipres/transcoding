@@ -33,7 +33,7 @@ import utils
 # Vars
 LOG_PATH = os.environ['LOG_PATH']
 ARRIVALS = os.path.join(os.environ['QNAP_08'], 'Memnon_arrivals')
-DEPARTURES = os.path.join(os.environ['MEMNON_PROCESSING'], 'memnon_processing')
+DEPARTURES = os.path.join(os.environ['QNAP_08'], 'memnon_processing')
 FAILURES = os.path.join(ARRIVALS, 'failures')
 VALIDATE608 = os.path.join(os.environ['MEDIACONCH'], 'videoops_mediaconch_policy_mkv_608.xml')
 VALIDATE576 = os.path.join(os.environ['MEDIACONCH'], 'videoops_mediaconch_policy_mkv.xml')
