@@ -65,7 +65,14 @@ def main():
         # Get file MD5
         LOGGER.info("Generating local MD5 and comparing to XML supplied checksum")
         local_hash = utils.create_md5_65536(fpath)
+        LOGGER.info("Local MD5 created: %s", local_hash)
         xml_hash = get_xml_hash(ARRIVALS, mkv.split('.')[0])
+        if xml_hash is None:
+            LOGGER.warning("Failed to retrieve MD5 has from XML file for %s", mkv)
+            # shutil.move(fpath, FAILURES)
+            error_log(mkv, f"{mkv} file had no supplier XML.")
+            error_log(mkv, f"File MD5: {local_hash.lower()}")
+            error_log(mkv, f"XML supplied MD5: Not found")            
         if local_hash.lower() != xml_hash.lower():
             LOGGER.warning("Moving MKV %s to failures path. Checksums do not match:\n%s\n%s", mkv, hash, xml_hash)
             # shutil.move(fpath, FAILURES)
