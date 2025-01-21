@@ -7,7 +7,7 @@
 date_FULL=$(date +'%Y-%m-%d - %T')
 
 # Local variables from environmental vars
-transcode_path1="${VID_IS}"
+transcode_path1="${QNAP08_AUTOMATION}"
 dump_to="$GIT_TRANSCODE"
 log_path="${SCRIPT_LOG}batch_transcode_ofcom_ffv1_v210.log"
 python_script="$SCRIPT_FFV1_V210_OFCOM"

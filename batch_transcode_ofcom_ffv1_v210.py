@@ -33,8 +33,9 @@ import logging
 import subprocess
 
 # Global paths from server environmental variables
-MOV_POLICY = os.environ.get('MOV_OFCOM_POLICY')
-STORAGE = os.environ.get('VID_IS')
+MOV_POLICY_PAL = os.environ.get('MOV_OFCOM_POLICY')
+MOV_POLICY_NTSC = os.environ.get('MOV_NTSC_POLICY')
+STORAGE = os.environ.get('QNAP08_AUTOMATION')
 LOG = os.environ.get('SCRIPT_LOG')
 CONTROL_JSON = os.path.join(LOG, 'downtime_control.json')
 
@@ -206,14 +207,14 @@ def create_ffmpeg_command(fullpath, data=None):
            interlace + audio_settings + mov_settings
 
 
-def conformance_check(filepath):
+def conformance_check(filepath, mov_policy):
     '''
     Checks mediaconch policy against new V210 mov
     '''
 
     mediaconch_cmd = [
         'mediaconch', '--force',
-        '-p', MOV_POLICY,
+        '-p', mov_policy,
         filepath
     ]
 
@@ -405,6 +406,9 @@ def main():
             seconds_time = (toc - tic)
             logger_list.append(f"* Encoding time for {file} was {encode_time} minutes // or in seconds {seconds_time}")
 
+            # Ensure that permissions allow framemd5 work
+            os.chmod(change_path(fullpath, 'transcode'), 0o777)
+
             # Check framemd5's match for MKV and MOV
             tic2 = time.perf_counter()
             md5_mov, md5_mkv = make_framemd5(fullpath)
@@ -444,7 +448,7 @@ def main():
                     logger_list.append(f"WARNING: Unable to move {new_file} to failures/ folder: {fail_path}")
                 try:
                     logger_list.append(f"Deleting {fail_path} file")
-                    os.remove(fail_path)
+                    #os.remove(fail_path)
                 except Exception:
                     logger_list.append(f"WARNING: Unable to delete {fail_path}")
 
@@ -465,26 +469,22 @@ def clean_up(fullpath):
     Runs conformance check with MediaConch, and pass or fail
     removes the relevant file and appends logs
     '''
+    clean = False
     new_file = change_path(fullpath, 'transcode')
     logger.info("Clean up begins for %s", new_file)
     if os.path.isfile(new_file):
         if new_file.endswith(".mov"):
-            logger.info("Conformance check: comparing %s with policy", new_file)
-            result = conformance_check(new_file)
+            logger.info("Conformance check: comparing %s with PAL/NTSC policies", new_file)
+            result = conformance_check(new_file, MOV_POLICY_PAL)
             if "PASS!" in result:
-                logger.info("%s passed the policy checker and it's Matroska can be deleted", new_file)
-                try:
-                    new_file_path = change_path(fullpath, 'move')
-                    shutil.move(new_file, new_file_path)
-                except Exception:
-                    logger.warning("Unable to move %s to success folder: %s", new_file, new_file_path)
-                try:
-                    # Delete FFV1 mkv after successful transcode to V210 mov
-                    logger.info("*** DELETION OF MKV FOLLOWING SUCCESSFUL TRANSCODE: %s", fullpath)
-                    os.remove(fullpath)
-                except Exception:
-                    logger.warning("Deletion failure: %s", fullpath)
-            else:
+                logger.info("%s passed the PAL policy checker and it's Matroska can be deleted", new_file)
+                clean = True
+            result2 = conformance_check(new_file, MOV_POLICY_NTSC)
+            if "PASS!" in result2:
+                logger.info("%s passed the NTSC policy checker and it's Matroska can be deleted", new_file)
+                clean = True
+
+            if clean is False:
                 logger.warning("FAIL: %s failed the policy checker. Leaving Matroska for second encoding attempt", new_file)
                 fail_log(fullpath, "MOV file failed Mediaconch policy:")
                 fail_log(fullpath, result)
@@ -497,13 +497,28 @@ def clean_up(fullpath):
                     logger.warning("Unable to move %s to failures/ folder: %s", new_file, fail_path)
                 try:
                     logger.info("Deleting %s file as failed mediaconch policy", fail_path)
-                    os.remove(fail_path)
+                    #os.remove(fail_path)
                 except Exception:
                     logger.warning("Unable to delete %s", fail_path)
+
+            if clean is True:
+                try:
+                    new_file_path = change_path(fullpath, 'move')
+                    shutil.move(new_file, new_file_path)
+                except Exception:
+                    logger.warning("Unable to move %s to success folder: %s", new_file, new_file_path)
+                try:
+                    # Delete FFV1 mkv after successful transcode to V210 mov
+                    logger.info("*** DELETION OF MKV FOLLOWING SUCCESSFUL TRANSCODE: %s", fullpath)
+                    os.remove(fullpath)
+                except Exception:
+                    logger.warning("Deletion failure: %s", fullpath)
         else:
             logger.info("Skipping %s, as this file is not ended .mov", new_file)
     else:
         logger.warning("NOT A FILE: %s what is this?", new_file)
+
+
 
 
 if __name__ == "__main__":
