@@ -9,10 +9,11 @@ Memnon workflow for Video Ops D3 FFV1 MKV returns
     b. Run FFmpeg check against FFV1 for flipped bits / CRC difference
     c. Validate file against MediaConch policy
     d. Possibly update PAR if needed (as per Bluefish metadata updating)
-3. Files are moved into new Splitting script workflow in QNAP-08
+3. MKV files are moved into new Splitting script workflow in QNAP-08
+   XML files are moved into ARRIVALS/xml_files/ folder
 
-All files should be PAL 608 height, though a 608 mediaconch failure may
-need handling with a second MediaConch check implementing.
+All files should be PAL 608 height, though a 608 mediaconch failure is
+handled with a second MediaConch check for 576 height.
 
 2025
 '''
@@ -35,6 +36,7 @@ LOG_PATH = os.environ['LOG_PATH']
 ARRIVALS = os.path.join(os.environ['QNAP_08'], 'Memnon_arrivals')
 DEPARTURES = os.path.join(os.environ['QNAP_08'], 'memnon_processing')
 FAILURES = os.path.join(ARRIVALS, 'failures')
+XML_FILES = os.path.join(ARRIVALS, 'xml_files')
 VALIDATE608 = os.path.join(os.environ['QNAP08_POLICIES'], 'videoops_mediaconch_policy_mkv_608.xml')
 VALIDATE576 = os.path.join(os.environ['QNAP08_POLICIES'], 'videoops_mediaconch_policy_mkv_576.xml')
 
@@ -60,6 +62,8 @@ def main():
             LOGGER.info('Script run prevented by downtime_control.json. Script exiting.')
             sys.exit('Script run prevented by downtime_control.json. Script exiting.')
 
+        can_id = mkv.split('.')[0]
+        xpath = os.path.join(ARRIVALS, f"{can_id}.xml")
         fpath = os.path.join(ARRIVALS, mkv)
         LOGGER.info("New file to process: %s", fpath)
 
@@ -67,17 +71,19 @@ def main():
         LOGGER.info("Generating local MD5 and comparing to XML supplied checksum")
         local_hash = utils.create_md5_65536(fpath)
         LOGGER.info("Local MD5 created: %s", local_hash)
-        xml_hash = get_xml_hash(ARRIVALS, mkv.split('.')[0])
+        xml_hash = get_xml_hash(ARRIVALS, can_id)
         if xml_hash is None:
             LOGGER.warning("Failed to retrieve MD5 has from XML file for %s", mkv)
-            # shutil.move(fpath, FAILURES)
+            shutil.move(fpath, FAILURES)
+            shutil.move(xpath, FAILURES)
             error_log(mkv, f"{mkv} file had no supplier XML.")
             error_log(mkv, f"File MD5: {local_hash.lower()}")
             error_log(mkv, f"XML supplied MD5: Not found")
             continue
         if local_hash.lower() != xml_hash.lower():
             LOGGER.warning("Moving MKV %s to failures path. Checksums do not match:\n%s\n%s", mkv, hash, xml_hash)
-            # shutil.move(fpath, FAILURES)
+            shutil.move(fpath, FAILURES)
+            shutil.move(xpath, FAILURES)
             error_log(mkv, f"{mkv} file failed MD5 Checksum tests:")
             error_log(mkv, f"File MD5: {local_hash.lower()}")
             error_log(mkv, f"XML supplied MD5: {xml_hash.lower()}")
@@ -94,7 +100,8 @@ def main():
             for mis in mismatches:
                 error_log(mkv, f"CRC mismatch: {mis}")
             # Move to failures
-            # shutil.move(fpath, FAILURES)
+            shutil.move(fpath, FAILURES)
+            shutil.move(xpath, FAILURES)
             continue
         LOGGER.info("MKV %s passed Slice CRC checks", mkv)
 
@@ -108,14 +115,16 @@ def main():
             if not confirm576:
                 LOGGER.warning("MKV %s failed 576 policy:", mkv, confirm576)
                 LOGGER.warning("Moving MKV %s to failures path.", mkv)
-                # shutil.move(fpath, FAILURES)
+                shutil.move(fpath, FAILURES)
+                shutil.move(xpath, FAILURES)
                 error_log(mkv, f"Mediaconch failure for 608 policy:\n{confirm608}")
                 error_log(mkv, f"Mediaconch failure for 608 policy:\n{confirm576}")
                 continue
         LOGGER.info("MKV %s passed Mediaconch checks", mkv)
 
         LOGGER.info("Moving MKV %s into Memnon splitting path: %s", mkv, DEPARTURES)
-        # shutil.move(fpath, DEPARTURES)
+        shutil.move(fpath, os.path.join(DEPARTURES, mkv))
+        shutil.move(xpath, os.path.join(XML_FILES, f"{can_id}.xml"))
 
     LOGGER.info("---------- D3 MEMNON VALIDATION END --------------------------------")
 
