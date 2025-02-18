@@ -23,9 +23,9 @@ import os
 import sys
 import shutil
 import logging
-import xmltodict
 import subprocess
 from datetime import datetime
+import xmltodict
 
 # Local packages
 sys.path.append(os.environ['CODE'])
@@ -34,7 +34,7 @@ import utils
 # Vars
 LOG_PATH = os.environ['LOG_PATH']
 ARRIVALS = os.path.join(os.environ['QNAP_08'], 'Memnon_arrivals')
-DEPARTURES = os.path.join(os.environ['QNAP_08'], 'memnon_processing')
+DEPARTURES = os.path.join(os.environ['QNAP_08'], 'memnon_processing/source/')
 FAILURES = os.path.join(ARRIVALS, 'failures')
 XML_FILES = os.path.join(ARRIVALS, 'xml_files')
 VALIDATE608 = os.path.join(os.environ['QNAP08_POLICIES'], 'videoops_mediaconch_policy_mkv_608.xml')
@@ -54,6 +54,11 @@ def main():
     Iterate through files running checks against MKV files
     and moving to failure/processing folders as needed
     '''
+
+    if not utils.check_control('power_off_all'):
+        LOGGER.info('Script run prevented by downtime_control.json. Script exiting.')
+        sys.exit('Script run prevented by downtime_control.json. Script exiting.')
+
     mkv_list = [ x for x in os.listdir(ARRIVALS) if x.endswith(('.mkv', '.MKV'))]
     if len(mkv_list) > 0:
         LOGGER.info("---------- D3 MEMNON VALIDATION START ------------------------------")
@@ -78,7 +83,7 @@ def main():
             shutil.move(xpath, FAILURES)
             error_log(mkv, f"{mkv} file had no supplier XML.")
             error_log(mkv, f"File MD5: {local_hash.lower()}")
-            error_log(mkv, f"XML supplied MD5: Not found")
+            error_log(mkv, "XML supplied MD5: Not found")
             continue
         if local_hash.lower() != xml_hash.lower():
             LOGGER.warning("Moving MKV %s to failures path. Checksums do not match:\n%s\n%s", mkv, hash, xml_hash)
@@ -113,7 +118,7 @@ def main():
             LOGGER.info("Comparing file to 576 OFCOM MediaConch Policy")
             confirm576 = utils.get_mediaconch(fpath, VALIDATE576)
             if not confirm576:
-                LOGGER.warning("MKV %s failed 576 policy:", mkv, confirm576)
+                LOGGER.warning("MKV %s failed 576 policy:\n%s", mkv, confirm576)
                 LOGGER.warning("Moving MKV %s to failures path.", mkv)
                 shutil.move(fpath, FAILURES)
                 shutil.move(xpath, FAILURES)
@@ -185,7 +190,7 @@ def scan_ffv1_codec(fpath):
         '-f', 'null', '-'
     ]
     try:
-        ffmpeg_report = subprocess.run(cmd, shell=False, capture_output=True, text=True)
+        ffmpeg_report = subprocess.run(cmd, shell=False, capture_output=True, text=True, check=True)
     except subprocess.CalledProcessError as err:
         print(err)
         return None
