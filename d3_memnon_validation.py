@@ -33,7 +33,7 @@ import utils
 
 # Vars
 LOG_PATH = os.environ['LOG_PATH']
-ARRIVALS = os.path.join(os.environ['QNAP_08'], 'Memnon_arrivals')
+ARRIVALS = os.path.join(os.environ['QNAP_08'], 'memnon_validation')
 DEPARTURES = os.path.join(os.environ['QNAP_08'], 'memnon_processing/source/')
 FAILURES = os.path.join(ARRIVALS, 'failures')
 XML_FILES = os.path.join(ARRIVALS, 'xml_files')
