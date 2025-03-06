@@ -76,7 +76,9 @@ def main():
         LOGGER.info("Generating local MD5 and comparing to XML supplied checksum")
         local_hash = utils.create_md5_65536(fpath)
         LOGGER.info("Local MD5 created: %s", local_hash)
-        xml_hash = get_xml_hash(ARRIVALS, can_id)
+        xml_hash, duration = get_xml_hash(ARRIVALS, can_id)
+        if duration:
+            capture_duration_log(f"{can_id}.xml", duration)
         if xml_hash is None:
             LOGGER.warning("Failed to retrieve MD5 has from XML file for %s", mkv)
             shutil.move(fpath, FAILURES)
@@ -162,20 +164,20 @@ def get_xml_hash(fpath, fname):
         for file_dict in get_files:
             if f"{fname}.mkv" in file_dict.get('FileName'):
                 checksum = file_dict.get('CheckSum').get('#text')
+                check_type = file_dict.get('CheckSum').get('@Type')
+                duration = file_dict.get('Duration')
                 if len(checksum) != 32:
-                    return None
-                else:
-                    checksum = file_dict.get('CheckSum').get('#text')
-                    check_type = file_dict.get('CheckSum').get('@Type')
+                    return None, None
     else:
         if f"{fname}.mkv" in str(get_files):
             try:
                 checksum = get_files.get('CheckSum').get('#text')
                 check_type = get_files.get('CheckSum').get('@Type')
+                duration = get_file.get('Duration')
             except Exception as err:
                 print(err)
     if str(check_type) == 'MD5':
-        return checksum
+        return checksum, duration
 
 
 def scan_ffv1_codec(fpath):
@@ -214,6 +216,17 @@ def get_crc_mismatch(ffmpeg_report):
     return time_mismatches
 
 
+def capture_duration_log(fname, duration):
+    '''
+    Write XML filename and duration to log
+    '''
+    ts = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    fpath = os.path.join(XML_FILES, f"XML_durations.log")
+
+    with open(fpath, 'a') as log:
+        log.write(f"{ts} - {fname} - {duration}\n")
+
+
 def error_log(fname, message):
     '''
     If needed, write error log
@@ -224,7 +237,6 @@ def error_log(fname, message):
 
     with open(fpath, 'w+') as log:
         log.write(f"Error {ts}: {message}.\n\n")
-        log.close()
 
 
 if __name__ == '__main__':
