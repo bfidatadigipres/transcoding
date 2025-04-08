@@ -10,6 +10,18 @@ function log {
     echo "$1 - $timestamp"
 } >> "${MKV_PROCESSING}mkv_movements.log"
 
+function control {
+    boole=$(cat "${CONTROL_JSON}" | grep "power_off_all" | awk -F': ' '{print $2}')
+    if [ "$boole" = false, ] ; then
+      echo "Control json requests script exit immediately" >> "${LOG}"
+      echo 'Control json requests script exit immediately'
+      exit 0
+    fi
+}
+
+# Control check inserted into code
+control
+
 # Check for list of files in MKV_Ready_for_Processing/ folder
 if [ -z "$(ls -A ${MKV_PROCESSING} | grep '.mkv')" ]
   then
@@ -18,6 +30,7 @@ if [ -z "$(ls -A ${MKV_PROCESSING} | grep '.mkv')" ]
   else
     log "==== Bluefish metadata edit / move START ===="
 fi
+
 
 # Find all MKV files, check metadata then update mkvtoolnix
 find "$MKV_PROCESSING" -maxdepth 1 -name '*.mkv' | while IFS= read -r files; do
