@@ -141,15 +141,15 @@ def get_xml_hash(fpath, fname):
     Split filepath, and retrieve XML hash
     data from file
     '''
-    checksum = check_type = ''
+    checksum = check_type = duration = ''
 
     xml_path = os.path.join(fpath, f"{fname}.xml")
     if not os.path.exists(xml_path):
-        return None
+        return None, None
     with open(xml_path, 'r', encoding='utf-8') as data:
         _data = data.read()
     if not _data:
-        return None
+        return None, None
 
     xml_data = xmltodict.parse(_data)
     print(xml_data)
@@ -158,7 +158,7 @@ def get_xml_hash(fpath, fname):
         print(get_files)
     except (KeyError, IndexError, TypeError) as err:
         print(err)
-        return None
+        return None, None
 
     if isinstance(get_files, list):
         for file_dict in get_files:
@@ -173,7 +173,7 @@ def get_xml_hash(fpath, fname):
             try:
                 checksum = get_files.get('CheckSum').get('#text')
                 check_type = get_files.get('CheckSum').get('@Type')
-                duration = get_file.get('Duration')
+                duration = get_files.get('Duration')
             except Exception as err:
                 print(err)
     if str(check_type) == 'MD5':
