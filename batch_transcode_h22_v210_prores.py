@@ -37,7 +37,7 @@ import subprocess
 
 # Global paths from server environmental variables
 PATH_POLICY = os.environ['H22_POLICIES']
-PRORES_POLICY = os.path.join(PATH_POLICY, 'h22_video_transcode_policy_ProRes.xml')
+PRORES_POLICY = os.path.join(PATH_POLICY, 'prores_transcode_check.xml')
 LOG = os.environ['SCRIPT_LOG']
 CONTROL_JSON = os.path.join(LOG, 'downtime_control.json')
 
