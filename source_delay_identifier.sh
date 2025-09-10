@@ -3,6 +3,18 @@
 PATH1="$PATH_INN"
 LOG="${SCRIPT_LOG}source_delay_locator1.log"
 
+function control {
+    boole=$(cat "${CONTROL_JSON}" | grep "power_off_all" | awk -F': ' '{print $2}')
+    if [ "$boole" = false, ] ; then
+      echo "Control json requests script exit immediately" >> "${LOG}"
+      echo 'Control json requests script exit immediately'
+      exit 0
+    fi
+}
+
+# Control check inserted into code
+control
+
 find "${PATH1}/validate/" -name "*.mov" | while IFS= read -r files; do
     echo "$files"
     source_delay=$(mediainfo -f "$files" | grep 'Source_Delay ')

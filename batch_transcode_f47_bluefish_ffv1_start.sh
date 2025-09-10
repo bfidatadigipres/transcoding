@@ -6,11 +6,25 @@
 
 date_FULL=$(date +'%Y-%m-%d - %T')
 
+
 # Local variables from environmental vars
 transcode_path1="${BLUEFISH_MKV}"
 dump_to="${GIT_TRANSCODE}"
 log_path="${SCRIPT_LOG}QNAP_08_bluefish_ffv1_tbc_fix.log"
 python_script="${GIT_TRANSCODE}f47_bluefish_ffv1_tbc_fix.py"
+
+
+function control {
+    boole=$(cat "${CONTROL_JSON}" | grep "power_off_all" | awk -F': ' '{print $2}')
+    if [ "$boole" = false, ] ; then
+      echo "Control json requests script exit immediately" >> "${LOG}"
+      echo 'Control json requests script exit immediately'
+      exit 0
+    fi
+}
+
+# Control check inserted into code
+control
 
 # replace list to ensure clean data
 rm "${dump_to}batch_transcode_f47_bluefish_fix_dump_text.txt"

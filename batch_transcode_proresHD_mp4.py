@@ -50,6 +50,16 @@ logger.setLevel(logging.INFO)
 
 logger.info("================== START ProRes mov to mp4 transcode START ==================")
 
+def check_control():
+    '''
+    Check control json for downtime requests
+    '''
+    with open(CONTROL_JSON) as control:
+        j = json.load(control)
+        if not j['ofcom_transcode']:
+            logger.info('Script run prevented by downtime_control.json. Script exiting.')
+            sys.exit('Script run prevented by downtime_control.json. Script exiting.')
+
 
 def set_output_path(file_path, use):
     '''
@@ -237,6 +247,7 @@ def main():
     '''
     Script receives sys.argv from GNU parallel list grep and processes one ProRes from list
     '''
+    check_control()
     if len(sys.argv) < 2:
         print("SCRIPT EXITING: Error with shell script input. Please input:\n \
                python3 batch_transcode_proresHD_mp4.py /path_to_file/file.mov")
