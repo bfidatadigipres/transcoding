@@ -18,7 +18,8 @@
 #-----------------------------------------------------------#
 
 # Global variables
-OUTPUT="${QNAP_VID}/processing/source"
+#OUTPUT="${QNAP_VID}/processing/source"
+OUTPUT="${QNAP_01}/processing/source"
 SUCCESS="${QNAP_08}/processing/transcode/original"
 ERROR="${QNAP_08}/processing/transcode/error"
 # Receive args at launch

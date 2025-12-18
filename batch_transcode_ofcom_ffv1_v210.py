@@ -32,8 +32,8 @@ import logging
 import subprocess
 
 # Global paths from server environmental variables
-MOV_POLICY_PAL = os.environ.get('MOV_OFCOM_POLICY')
-MOV_POLICY_NTSC = os.environ.get('MOV_NTSC_POLICY')
+MOV_POLICY_PAL = os.environ.get('MOV_POLICY_H22')
+MOV_POLICY_NTSC = os.environ.get('MOV_NTSC_GEN')
 STORAGE = os.environ.get('QNAP08_AUTOMATION')
 LOG = os.environ.get('SCRIPT_LOG')
 CONTROL_JSON = os.path.join(LOG, 'downtime_control.json')
@@ -286,8 +286,9 @@ def framemd5_cut(framemd5):
     '''
 
     new_manifest = []
-    framemd5_decode = framemd5.decode('utf-8')
-    lines = framemd5_decode.split('\n')
+    lines =  framemd5.decode('utf-8').split('\n')
+#    framemd5_decode = framemd5.decode('utf-8')
+#    lines = framemd5_decode.split('\n')
 
     for line in lines:
         if line.startswith('#'):

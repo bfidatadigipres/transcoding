@@ -24,6 +24,6 @@ echo " == Shell script creating dump_text.txt output for parallel launch of Pyth
 find "${transcode_path1}" -maxdepth 1 -mindepth 1 -name "*.mkv" -mmin +30 >> "${dump_to}batch_transcode_f47_bluefish_fix_dump_text.txt"
 
 echo " == Launching GNU parallel to run muliple Python3 scripts for encoding == " >> "${log_path}"
-grep '/mnt/' "${dump_to}batch_transcode_f47_bluefish_fix_dump_text.txt" | sort -u | shuf | parallel --jobs 3 "python3 ${python_script} {}"
+grep '/mnt/' "${dump_to}batch_transcode_f47_bluefish_fix_dump_text.txt" | sort -u | shuf | parallel --jobs 3 "${PY3_ENV} ${python_script} {}"
 
 echo " ========================= SHELL SCRIPT END ========================== $(date +'%Y-%m-%d - %T')" >> "${log_path}"
