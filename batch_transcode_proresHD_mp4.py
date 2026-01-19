@@ -178,20 +178,11 @@ def fail_log(fail_log_path, file_path, message):
     Append failure message to log, if not there yet, recreate and append
     '''
     message = str(message)
-    if os.path.isfile(fail_log_path):
-        with open(fail_log_path, 'a') as log_data:
+    if "failures/" in fail_log_path:
+        with open(fail_log_path, 'a+') as log_data:
             log_data.write("================= {} ================ {}\n".format(file_path, TODAY))
             log_data.write(message)
             log_data.write("\n")
-            log_data.close()
-    else:
-        with open(fail_log_path, 'x') as log_data:
-            log_data.close()
-        with open(fail_log_path, 'a') as log_data:
-            log_data.write("================= {} ================ {}\n".format(file_path, TODAY))
-            log_data.write(message)
-            log_data.write("\n")
-            log_data.close()
 
 
 def md5_check(file_path1, file_path2):
@@ -211,8 +202,8 @@ def md5_check(file_path1, file_path2):
         logger.info("Beginning MD5 generation for ProRes file %s", file_path1)
         check1 = subprocess.check_output(md5_file1)
         check1 = str(check1)
-    except:
-        logger.exception("MD5 command failure: %s", file_path1)
+    except (subprocess.CalledProcessError, Exception) as err:
+        logger.exception("MD5 command failure: %s\n%s", file_path1, err)
 
     md5_file2 = [
         'md5sum', file_path2
@@ -222,8 +213,8 @@ def md5_check(file_path1, file_path2):
         logger.info("Beginning MD5 generation for ProRes file %s", file_path2)
         check2 = subprocess.check_output(md5_file2)
         check2 = str(check2)
-    except:
-        logger.exception("MD5 command failure: %s", file_path2)
+    except (subprocess.CalledProcessError, Exception) as err:
+        logger.exception("MD5 command failure: %s\n%s", file_path2, err)
 
     if check1[2:36] == check2[2:36]:
         logger.info("MD5 checksums match! ProRes1: %s ProRes2: %s", check1[2:36], check2[2:36])
@@ -238,8 +229,10 @@ def main():
     Script receives sys.argv from GNU parallel list grep and processes one ProRes from list
     '''
     if len(sys.argv) < 2:
-        print("SCRIPT EXITING: Error with shell script input. Please input:\n \
-               python3 batch_transcode_proresHD_mp4.py /path_to_file/file.mov")
+        print(
+            "SCRIPT EXITING: Error with shell script input. Please input:\n \
+            python3 batch_transcode_proresHD_mp4.py /path_to_file/file.mov"
+        )
         logger.warning("SCRIPT EXITING: Error with shell script input. Please input:\n \
                         python3 batch_transcode_proresHD_mp4.py /path_to_file/file.mov")
         sys.exit()
@@ -312,37 +305,6 @@ def clean_up(file_path):
             except Exception:
                 logger.exception("Unable to move %s to %s", file_path, move_to_copy)
 
-            '''
-            if 'MATCH' in test:
-                logger.info("ProRes file %s moved successfully and MD5 checksums match", new_mov_path)
-                logger.info("Deleting original file: %s", file_path)
-                os.remove(file_path)
-            else:
-                logger.warning("ProRes file copy failed Diff check of MD5 sum. Deleting copy and retrying")
-                os.remove(new_mov_path)
-                rsync(file_path, new_mov_path)
-                test = md5_check(file_path, new_mov_path)
-                if 'MATCH' in test:
-                    logger.info("ProRes file %s moved successfully after second attempt and MD5 checksums match", new_mov_path)
-                    logger.info("Deleting original file: %s", file_path)
-                    os.remove(file_path)
-                else:
-                    fail_mov_path = set_output_path(file_path, 'fail')
-                    logger.warning("Unable to move ProRes successfully after two attempts: %s", file_path)
-                    logger.warning("Moving ProRes to failures folder, with warning appended to failure log")
-                    message = "==============================================================\n \
-                               Unable to copy ProRes to Grack_h22. MP4 creation successful.\n \
-                               {}\n \
-                               This item needs manually relocating in Grack_F47.\n \
-                               ==============================================================".format(file_path)
-                    trim = os.path.split(file_path)
-                    fail_log_path = set_output_path(trim[0], 'log')
-                    fail_log(fail_log_path, fail_mov_path, message)
-                    try:
-                        shutil.move(file_path, fail_mov_path)
-                    except Exception:
-                        logger.exception("Failed to move ProRes %s to %s", file_path, fail_mov_path)
-            '''
         elif 'FAIL!' in result:
             # Failed. Delete MP4 and leave ProRes to try again
             fail_mp4_path = set_output_path(new_file, 'fail')
