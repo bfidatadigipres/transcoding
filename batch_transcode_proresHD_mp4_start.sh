@@ -17,15 +17,19 @@ touch "${dump_to}proresHD_dump_text.txt"
 
 # Directory path to run shell script temporarily
 cd "${dump_to}"
-
-echo " ======================== SHELL SCRIPT START =========================== " >> "${log}batch_transcode_proresHD_mp4.log"
-echo " == Start batch_transcode_proresHD_mp4 in folder path - $date_FULL == " >> "${log}batch_transcode_proresHD_mp4.log"
-echo " == Shell script creating proresHD_dump_text.txt for folder path - $date_FULL == " >> "${log}batch_transcode_proresHD_mp4.log"
-
 find "${transcode_path1}" -name "*.mov" -mmin +10 >> "${dump_to}proresHD_dump_text.txt"
 find "${transcode_path2}" -name "*.mov" -mmin +10 >> "${dump_to}proresHD_dump_text.txt"
 find "${transcode_path3}" -name "*.mov" -mmin +10 >> "${dump_to}proresHD_dump_text.txt"
 
-grep '/mnt/' "${dump_to}proresHD_dump_text.txt" | parallel --jobs 2 "python3 ${python}batch_transcode_proresHD_mp4.py {}"
+if [ -s "${dump_to}proresHD_dump_text.txt" ]
+  then
+    echo " ======================== SHELL SCRIPT START =========================== " >> "${log}batch_transcode_proresHD_mp4.log"
+    echo " == Start batch_transcode_proresHD_mp4 in folder path - $date_FULL == " >> "${log}batch_transcode_proresHD_mp4.log"
+    echo " == Shell script creating proresHD_dump_text.txt for folder path - $date_FULL == " >> "${log}batch_transcode_proresHD_mp4.log"
 
-echo " ===================== SHELL SCRIPT END ======================== " >> "${log}batch_transcode_proresHD_mp4.log"
+    grep '/mnt/' "${dump_to}proresHD_dump_text.txt" | parallel --jobs 2 "python3 ${python}batch_transcode_proresHD_mp4.py {}"
+
+    echo " ===================== SHELL SCRIPT END ======================== " >> "${log}batch_transcode_proresHD_mp4.log"
+  else
+    exit 1
+fi
