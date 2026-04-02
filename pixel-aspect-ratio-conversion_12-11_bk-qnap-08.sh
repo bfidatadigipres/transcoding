@@ -24,7 +24,7 @@ par='12:11'
 mmeLocation='/usr/bin/movmetaedit'
 
 # Where the Isilon PAR folder is mounted on this system (no trailing slash)
-mountPoint='${QNAP_08}'
+mountPoint="$QNAP_08"
 echo "mountpoint is $mountPoint"
 
 # Folder containing files to process (no trailing slash)
